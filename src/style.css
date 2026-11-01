@@ -1666,3 +1666,150 @@ dialog h3 {
     padding: 6px 7px;
   }
 }
+/* Generation flow: deliberately chosen products, one recipe on demand. */
+.compact-hero {
+  padding: 35px 0 32px;
+}
+.compact-hero h1 {
+  font-size: clamp(35px, 4.3vw, 58px);
+  letter-spacing: -2px;
+}
+.compact-hero p {
+  margin-top: 13px;
+}
+.map-disclosure {
+  margin: 14px 0;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+.map-disclosure summary,
+.pantry-details summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 0;
+}
+.map-disclosure #map {
+  margin-top: 12px;
+}
+.generation-intro {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+  margin-top: 10px;
+}
+.selected-products {
+  margin: 20px 0;
+}
+.selected-products > p {
+  font-size: 14px;
+  line-height: 1.7;
+}
+.selection-caption {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #56674b;
+  font-weight: 700;
+}
+.product-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.product-chips span {
+  background: #e7edda;
+  border: 1px solid #ccd7bd;
+  padding: 8px 11px;
+  border-radius: 5px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.pantry-details {
+  margin: 15px 0 20px;
+}
+.pantry-details .pantry {
+  margin: 12px 0 16px;
+  font-size: 14px;
+}
+.extra-pantry-label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+#extra-pantry {
+  width: min(100%, 480px);
+  border: 1px solid #cbd0c3;
+  border-radius: 5px;
+  padding: 11px 12px;
+  background: #fffef9;
+  font-size: 15px;
+}
+.pantry-details p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.generate-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.generation-status {
+  min-height: 22px;
+  margin: 12px 0 20px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.generated-list {
+  display: block;
+}
+.generated-card {
+  max-width: 100%;
+  padding: 25px 25px 0;
+}
+.generated-card h3 {
+  font-size: 31px;
+}
+.recipe-provenance,
+.recipe-extras {
+  margin-top: 20px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.recipe-provenance {
+  color: #3f5f2e;
+}
+.recipe-provenance p,
+.recipe-extras p {
+  font-size: 14px;
+  margin: 4px 0;
+}
+.recipe-extras {
+  margin-bottom: 22px;
+  color: var(--muted);
+}
+.generation-credit {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 18px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 760px) {
+  .compact-hero h1 {
+    font-size: 39px;
+    line-height: 1.1;
+    letter-spacing: -1.6px;
+  }
+  .compact-hero {
+    padding-top: 28px;
+  }
+  .generated-card {
+    padding: 21px 18px 0;
+  }
+  .generated-card h3 {
+    font-size: 29px;
+  }
+}

@@ -10,5 +10,21 @@ export async function config() {
     );
   }
   if (key) value.sallingFrontendKey = key;
+  const endpoint = process.env.RECIPE_ENDPOINT?.trim();
+  if (endpoint) {
+    const url = new URL(endpoint);
+    if (
+      url.protocol !== "https:" &&
+      !(
+        url.protocol === "http:" &&
+        ["127.0.0.1", "localhost"].includes(url.hostname)
+      )
+    ) {
+      throw new Error(
+        "Recipe endpoint must use HTTPS (or localhost for development).",
+      );
+    }
+    value.recipeEndpoint = endpoint;
+  }
   return value;
 }

@@ -26,6 +26,7 @@ jobs:
           # This is intentionally PUBLIC. Only a dedicated Frontend / Website App key.
           SALLING_KEY_KIND: frontend
           SALLING_FRONTEND_KEY: ${{ vars.SALLING_FRONTEND_KEY }}
+          RECIPE_ENDPOINT: ${{ vars.RECIPE_ENDPOINT }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

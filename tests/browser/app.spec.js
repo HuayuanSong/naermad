@@ -31,37 +31,191 @@ test.beforeEach(async ({ page }) => {
     }),
   );
 });
-test("demo supports stores, selected ingredients, recipes, scaled lists, download and keyboard dismissal", async ({
-  page,
-}) => {
-  const errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
-  await expect(page.locator("#mode-badge")).toContainText("Demo");
-  await expect(page.locator(".store-card")).toHaveCount(3);
+// Synthetic model output is only used by automated tests; the app has no mock fallback.
+const endpoint = "https://recipes.example.test/recipe";
+const config = {
+  sallingFrontendKey: "",
+  recipeEndpoint: endpoint,
+  geocoderUrl: "https://photon.komoot.io/api/",
+  tileUrl: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+};
+const generated = (input) => ({
+  status: "ok",
+  title: "Testret med valgte varer",
+  description: "Syntetisk svar til UI-test.",
+  servings: input.servings,
+  minutes: 20,
+  ingredients: [
+    ...input.products.map((p) => ({
+      name: p.name,
+      quantity: "600 g",
+      productId: p.id,
+      pantryItem: null,
+    })),
+    { name: "pasta", quantity: "300 g", productId: null, pantryItem: null },
+    { name: "olie", quantity: "1 spsk.", productId: null, pantryItem: "olie" },
+  ],
+  steps: [
+    "Klargør de valgte varer.",
+    "Tilbered de valgte varer.",
+    "Servér med pasta og olie.",
+  ],
+  model: "test-fixture-only",
+  provider: "test",
+  generatedAt: new Date().toISOString(),
+});
+async function connectFixture(page, respond) {
+  await page.route("**/config.json", (r) => r.fulfill({ json: config }));
+  await page.route(endpoint, async (r) => {
+    const input = r.request().postDataJSON();
+    if (respond) return respond(r, input);
+    return r.fulfill({
+      json: generated(input),
+      headers: { "Access-Control-Allow-Origin": "*" },
+    });
+  });
+}
+async function selectBroccoli(page) {
   await page.locator('[data-store="demo-1"]').click();
-  await expect(page.locator(".recipe-card")).not.toHaveCount(0);
-  await page.locator("#toggle-all").click();
-  await expect(page.locator(".recipe-card")).toHaveCount(0);
   await page
     .getByRole("button", { name: "Vælg Broccoli · 1 stk.", exact: true })
     .click();
+}
+test("recipe is generated only on request, with selected products, portions and explicit extras", async ({
+  page,
+}) => {
+  const errors = [],
+    requests = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await connectFixture(page, (r, input) => {
+    requests.push(input);
+    return r.fulfill({
+      json: generated(input),
+      headers: { "Access-Control-Allow-Origin": "*" },
+    });
+  });
+  await page.goto("/");
+  await expect(page.locator(".store-card")).toHaveCount(3);
+  await expect(page.locator(".recipe-card")).toHaveCount(0);
+  await expect(page.locator("#generate")).toBeDisabled();
+  await selectBroccoli(page);
   await page.locator("#vegetarian").check();
-  await page.locator("#max-minutes").selectOption("30");
-  await expect(page.locator(".recipe-card")).toHaveCount(1);
   await page.locator("#servings").selectOption("4");
-  await page
-    .getByRole("button", { name: "Se opskrift: Cremet pasta med broccoli" })
-    .click();
+  expect(requests).toHaveLength(0);
+  await expect(page.locator(".recipe-card")).toHaveCount(0);
+  await page.locator("#generate").click();
+  await expect(page.locator(".recipe-card")).toHaveCount(1);
+  expect(requests).toHaveLength(1);
+  expect(requests[0].products).toEqual([
+    { id: "p1", name: "Broccoli · 1 stk." },
+  ]);
+  expect(requests[0].servings).toBe(4);
+  expect(requests[0].vegetarian).toBe(true);
+  expect(requests[0]).not.toHaveProperty("address");
+  await expect(page.locator(".recipe-provenance")).toContainText("Broccoli");
+  await expect(page.locator(".recipe-extras")).toContainText("pasta");
+  await page.locator("[data-recipe]").click();
   await expect(page.locator("#recipe-dialog")).toBeVisible();
   await expect(page.locator(".shopping-list")).toContainText("600 g");
+  await expect(page.locator(".shopping-list")).toContainText("Fra dit køkken");
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#download-list").click();
-  const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("naermad-broccoli-pasta.txt");
+  expect((await downloadPromise).suggestedFilename()).toBe(
+    "naermad-opskrift.txt",
+  );
   await page.keyboard.press("Escape");
   await expect(page.locator("#recipe-dialog")).not.toBeVisible();
+  await page.locator("#another-recipe").click();
+  await expect(page.locator(".recipe-card")).toHaveCount(1);
+  expect(requests).toHaveLength(2);
+  expect(requests[1].variant).toBe(1);
   expect(errors).toEqual([]);
+});
+test("missing model connection is explicit and produces no recipe", async ({
+  page,
+}) => {
+  await page.route("**/config.json", (r) =>
+    r.fulfill({ json: { ...config, recipeEndpoint: "" } }),
+  );
+  await page.goto("/");
+  await selectBroccoli(page);
+  await expect(page.locator("#generate")).toBeDisabled();
+  await expect(page.locator("#generation-status")).toContainText(
+    "endnu ikke tilsluttet",
+  );
+  await expect(page.locator(".recipe-card")).toHaveCount(0);
+});
+test("changing selection or cancelling ignores a pending model result", async ({
+  page,
+}) => {
+  let release, started;
+  let pending = new Promise((resolve) => {
+    started = resolve;
+  });
+  await connectFixture(page, async (r, input) => {
+    started();
+    await new Promise((resolve) => {
+      release = resolve;
+    });
+    await r
+      .fulfill({
+        json: generated(input),
+        headers: { "Access-Control-Allow-Origin": "*" },
+      })
+      .catch(() => {});
+  });
+  await page.goto("/");
+  await selectBroccoli(page);
+  await page.locator("#generate").click();
+  await pending;
+  await expect(page.locator("#cancel-generation")).toBeVisible();
+  await page.locator('[data-store="demo-3"]').click();
+  release();
+  await expect(page.locator("#generate")).toBeDisabled();
+  await expect(page.locator(".recipe-card")).toHaveCount(0);
+  await expect(page.locator(".selection-heading")).toContainText(
+    "0 varer valgt",
+  );
+  pending = new Promise((resolve) => {
+    started = resolve;
+  });
+  await selectBroccoli(page);
+  await page.locator("#generate").click();
+  await pending;
+  await page.locator("#cancel-generation").click();
+  release();
+  await expect(page.locator("#generation-status")).toContainText("annulleret");
+  await expect(page.locator(".recipe-card")).toHaveCount(0);
+});
+test("invalid model output and inference errors never fall back to fixed recipes", async ({
+  page,
+}) => {
+  let count = 0;
+  await connectFixture(page, (r, input) => {
+    count++;
+    if (count === 1)
+      return r.fulfill({
+        json: { ...generated(input), ingredients: [] },
+        headers: { "Access-Control-Allow-Origin": "*" },
+      });
+    return r.fulfill({
+      status: 429,
+      json: { error: "Prøv igen senere." },
+      headers: { "Access-Control-Allow-Origin": "*" },
+    });
+  });
+  await page.goto("/");
+  await selectBroccoli(page);
+  await page.locator("#generate").click();
+  await expect(page.locator("#generation-status")).toContainText(
+    "kunne ikke bruges",
+  );
+  await expect(page.locator(".recipe-card")).toHaveCount(0);
+  await page.locator("#generate").click();
+  await expect(page.locator("#generation-status")).toContainText(
+    "Prøv igen senere",
+  );
+  await expect(page.locator(".recipe-card")).toHaveCount(0);
 });
 test("address results work; demo stores are never invented near another city", async ({
   page,
@@ -75,24 +229,10 @@ test("address results work; demo stores are never invented near another city", a
   await page.locator("#demo-reset").click();
   await expect(page.locator(".store-card")).toHaveCount(3);
 });
-test("manual classification updates recipes, and changing store resets selected items", async ({
-  page,
-}) => {
-  await page.goto("/");
-  await page.locator('[data-store="demo-1"]').click();
-  await page.locator("#toggle-all").click();
-  const select = page.getByRole("combobox", {
-    name: "Råvare for Broccoli · 1 stk.",
-    exact: true,
-  });
-  await select.selectOption("mushroom");
-  await expect(page.locator(".recipe-card")).toContainText("Svampepasta");
-  await page.locator('[data-store="demo-3"]').click();
-  await expect(page.locator(".selection-heading")).toContainText("8 af 8");
-});
 test("mobile has no horizontal overflow, working filters and accessible dialog", async ({
   page,
 }) => {
+  await connectFixture(page);
   await page.setViewportSize({ width: 320, height: 844 });
   await page.goto("/");
   await expect(page.locator(".store-card")).toHaveCount(3);
@@ -101,6 +241,22 @@ test("mobile has no horizontal overflow, working filters and accessible dialog",
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+  await selectBroccoli(page);
+  await page.locator("#generate").click();
+  await expect(page.locator(".recipe-card")).toHaveCount(1);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.locator("[data-recipe]").click();
+  await expect(page.locator("#recipe-dialog")).toBeVisible();
+  expect(
+    await page
+      .locator("#recipe-dialog")
+      .evaluate((el) => el.scrollWidth <= el.clientWidth),
+  ).toBe(true);
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Om Nærmad" }).click();
   await expect(page.locator("#about-dialog")).toBeVisible();
   expect(
@@ -150,7 +306,9 @@ test("configured live flow consumes one nearby request, filters expired offers a
   await expect(page.locator(".store-card")).toHaveCount(3);
   expect(calls).toBe(1);
   await page.locator('[data-store="demo-1"]').click();
-  await expect(page.locator(".selection-heading")).toContainText("7 af 7");
+  await expect(page.locator(".selection-heading")).toContainText(
+    "0 varer valgt · 7 datovarer",
+  );
   await page.locator('[data-store="demo-2"]').click();
   await page.locator("#refresh").click();
   await expect(page.locator(".store-card")).toHaveCount(3);
@@ -183,8 +341,12 @@ test("live authentication error remains an error", async ({ page }) => {
 test("main view and dialogs pass automated WCAG A/AA checks", async ({
   page,
 }) => {
+  await connectFixture(page);
   await page.goto("/");
   await expect(page.locator(".store-card")).toHaveCount(3);
+  await selectBroccoli(page);
+  await page.locator("#generate").click();
+  await expect(page.locator(".recipe-card")).toHaveCount(1);
   for (const screen of ["main", "recipe", "about"]) {
     if (screen === "recipe")
       await page.locator("[data-recipe]").first().click();

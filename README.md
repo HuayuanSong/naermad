@@ -1,38 +1,38 @@
 # Nærmad
 
-**Fra datovare til aftensmad.** A Danish grocery markdown finder: search for an
-address or place, choose a nearby store, select discounted ingredients, and find
-recipes that use them.
+**Dine varer. En ny opskrift.** Search for a place, choose a nearby store, select
+1–6 discounted products, then ask a language model to create a Danish recipe for them.
 
-**Website:** https://huayuansong.github.io/naermad/
+**Public site:** https://huayuansong.github.io/naermad/
 
-The public deployment is **connected to Salling's live Anti Food Waste API**.
-Search for an address or place in Denmark, choose a participating store, and browse
-its currently reported markdowns. The production frontend key is restricted to
-`https://huayuansong.github.io` and the nearby food-waste read operation.
+## Branch status
 
-Local builds and forks without a configured key still use a **clearly labelled demo**:
-three fictional stores, inventory and prices around Aarhus. Address search and the
-map use real OpenStreetMap data. Demo stores are never moved to a user's location.
+This branch replaces the fixed recipe catalogue with **on-demand generation**.
+The UI, Hugging Face/Cloudflare adapters and tests are implemented. An authenticated
+inference account has **not** been connected or deployed. `recipeEndpoint` is empty,
+so the local app explicitly disables generation. Test fixtures are never served as
+actual generated recipes. The public main deployment still runs the previous version
+with live Salling inventory and the fixed catalogue until this branch is validated.
 
-## What works
+## How it works
 
-- Address and place-name search, including landmarks; optional browser location.
-- Freely pannable, smoothly zoomable Leaflet map and stores sorted by straight-line distance.
-- Salling Anti Food Waste adapter, with a five-minute in-memory cache, request
-  coalescing, timeouts, `Retry-After` handling and explicit authentication/quota errors.
-- Active markdown filtering: excludes expired/future offers, sold-out offers,
-  invalid prices and non-DKK entries. Does not pretend inventory is guaranteed.
-- 18 original recipe templates with ingredient amounts, methods and adjustable servings.
-- Conservative Danish product-name matching with a visible manual correction control.
-- Ranking by distinct selected ingredients used, then ingredient coverage. Vegetarian
-  and time filters; complete lists of discounted, missing and pantry ingredients.
-- Copyable, downloadable and printable recipe/shopping lists.
-- Mobile layout, keyboard controls, accessible native dialogs and self-hosted fonts.
+1. Search for an address or place (landmarks work too), or use browser geolocation.
+2. Choose a participating Netto, føtex or Bilka store. Open the map if useful.
+3. Select the actual products to use. Nothing is automatically selected.
+4. Choose portions, maximum preparation time and optionally vegetarian food. Confirm
+   basic pantry items or add a few of your own.
+5. Click **Lav en opskrift**. One fresh recipe is requested, with quantities and steps.
+   Selected products, pantry ingredients and extra purchases are listed separately.
+   **Lav en anden idé** makes another model request. No catalogue fallback exists.
 
-This first version uses deterministic matching, not an LLM. The earlier recipe
-fine-tuning dataset and model are not used or published here. Recipe templates were
-written with AI assistance for this project, are editable and have not been kitchen-tested.
+Changing products, store or preferences invalidates pending/previous results. The app
+also removes locally expired offers. Lists can be copied, downloaded and printed.
+
+GitHub Pages serves the Vite frontend; a small Cloudflare Worker handles inference.
+A shared contract bounds requests, validates structured output and verifies that every
+selected product has an ingredient reference. It cannot verify the culinary meaning
+of those references, food safety or whether a recipe will taste good. The earlier
+fine-tuning dataset and rejected experimental adapter are not used.
 
 ## Run locally
 
@@ -43,15 +43,78 @@ npm ci
 npm run dev
 ```
 
-Open http://127.0.0.1:4325/. With no key, the complete demo works automatically.
+Open http://127.0.0.1:4325/. Without a Salling key, three clearly labelled fictional
+Aarhus stores are shown. Without `RECIPE_ENDPOINT`, generation is unavailable.
 
 ```sh
 npm test
 npx playwright install chromium
 npm run test:browser
 npm run build
-npm run preview
+npx wrangler deploy --dry-run
 ```
+
+Browser tests intercept upstream services and use explicitly synthetic model responses.
+They verify interaction and integration contracts, not model quality.
+
+## Connect generation
+
+The same frontend works with either provider. Candidate models require real Danish
+recipe evaluation through the deployed endpoint before release. The public Cloudflare
+playground is useful for initial testing but is not a production API for this app.
+
+### Cloudflare Workers AI (free quota candidate)
+
+`wrangler.jsonc` binds `AI` and selects `@cf/qwen/qwen3-30b-a3b-fp8` by default.
+Cloudflare currently provides 10,000 neurons/day. A **Workers Free** account stops
+accepting AI requests after its allowance; a **Workers Paid** account can incur
+charges beyond it. Existing account usage shares the allowance. Do not upgrade
+or enable billable usage as part of a strictly-free deployment.
+
+After signing into the intended account and checking its plan:
+
+```sh
+npx wrangler login
+npx wrangler deploy
+```
+
+Use the resulting Worker URL with `/recipe` appended as the public `RECIPE_ENDPOINT`.
+Set the GitHub Actions repository variable of that name and rebuild the Pages site.
+`GET /health` reports whether a provider binding is present; it does not make a model
+call or prove the account has quota. Smoke-test actual generation separately.
+
+For local integration, add `http://127.0.0.1:4325` to `ALLOWED_ORIGINS` for a dedicated
+development Worker, then put its public URL in the ignored `.env.local`. This allows
+local browser requests without broadening Salling's production credential origins.
+
+### Hugging Face Inference Providers
+
+Set `RECIPE_PROVIDER` to `huggingface` in the Worker variables. The candidate default
+is `Qwen/Qwen3-30B-A3B:deepinfra`; model/provider availability can change. Use an HF
+access token restricted to inference and store it as a **Worker secret**:
+
+```sh
+npx wrangler secret put HF_TOKEN
+npx wrangler deploy
+```
+
+The CLI prompts for the token. Never place it in public configuration, a `VITE_*`
+variable, GitHub Pages, source code or a static Space. Optional `HF_MODEL` overrides
+the routed model. Hugging Face currently requires inference credits: free accounts
+receive no monthly allowance; paid plans include small allowances. Account access
+and a budget decision are still required before this option can be made live.
+
+### Request limits and error behavior
+
+- JSON request bodies are limited to 12 KB; at most six products and six servings.
+- Generation is user-triggered, capped at 2,400 output tokens, with no automatic retries.
+- A Cloudflare Rate Limiting binding limits each client IP to approximately three
+  requests per minute **per location**. It is not a global budget or authentication.
+- CORS restricts allowed browser origins; it does not stop a caller spoofing Origin.
+- Provider failures, quota errors, invalid output and incompatible ingredients remain
+  explicit errors. There is no fixed-recipe fallback or hidden regeneration loop.
+- Cancellation discards results in the browser. It cannot guarantee that an upstream
+  provider has stopped computing or charging for an already submitted request.
 
 ## Connect Salling
 
@@ -104,65 +167,44 @@ and configured as the GitHub Actions repository variable. It is deliberately abs
 from tracked source. `.env.local` remains independent, so local development can use
 its own origin-restricted key without broadening the production key's allowed origins.
 
-## Hosting
+## Data, privacy and limits
 
-**GitHub Pages is the selected host.** The site is static: Vite builds HTML, CSS and
-JavaScript, Leaflet renders the map, and recipe matching runs in the visitor's browser.
-Salling explicitly documents frontend integrations, so a server is unnecessary when
-the account provides a suitable food-waste frontend key.
+Salling supplies short-dated clearance products, not all weekly promotions. The
+frontend filters prices, validity, sold-out records, country and brands; nearby
+responses are cached in memory for five minutes and concurrent requests are pooled.
+Selecting a different store uses inventory already fetched. The API's at-most-20-store
+response may be incomplete. Distance is straight-line distance, not a walking route.
 
-The included workflow runs model/API tests and Chromium browser tests, builds `dist/`
-and deploys it. Enable Pages with **GitHub Actions** as the source. Without a configured
-key, deployment remains a demo. Add/change the repository variable and redeploy to connect.
-Runtime configuration is in `dist/config.json`; no query parameters or private files
-are embedded into the build. The source `public/config.json` always has an empty key.
+Product names are sent to the model exactly as returned, with bounded lengths.
+There is no regex-based conversion of prepared dishes into raw ingredients. Prompts
+ask the model to respect the actual product form, decline unclear/incompatible inputs
+and distinguish pantry items from extras. These are instructions, not quality guarantees.
+Recipe quantities are generated for the requested servings, not multiplied locally.
+Prices remain the API's price per sales unit; pack counts and total meal costs are
+not inferred from missing package sizes. Stock is not guaranteed at arrival.
 
-A Hugging Face **static** Space could also serve `dist/`, but it would not make keys
-private. A Docker Space/proxy is an option if private credentials or a central cache
-become necessary. As checked on 1 November 2026, Hugging Face says creating Docker
-Spaces requires a paid plan despite CPU Basic having no hourly cost; this project
-does not create paid infrastructure or require a Hugging Face subscription.
-
-## Data, matching and limits
-
-- Product identity is inferred from Danish names. Prepared dishes, sauces, smoked
-  fish and explicitly dried chickpeas are not treated as fresh recipe ingredients.
-  Ambiguous chickpeas are left unmatched unless described as cooked/canned. A user
-  can correct or remove a match using the ingredient dropdown; this is not an
-  allergen certification or a comprehensive product ontology.
-- Recipe rankings count distinct ingredient types, not duplicate offers for the same
-  ingredient. If several selected offers match one ingredient, the lowest listed
-  price is shown; this does not compare price per kg or required pack quantities.
-- Prices are per API sales unit (or kg when provided). No total recipe price, savings
-  per meal or number of packs is inferred from missing package sizes.
-- Ingredients marked “from your kitchen” depend on an explicit checkbox for oil,
-  salt, black pepper and water. Other missing ingredients remain visible.
-- Recipe quantities scale from two servings; method times and temperatures do not
-  scale linearly. Larger portions can need larger pans and extra cooking time.
-- Demo time fields are generated for that demo session and labelled as examples.
-  Live fetch times and API item timestamps are rendered in Europe/Copenhagen.
-  A local timer removes expired offers; it makes no network requests.
-- Distance is a great-circle distance, not a walking route or travel time. The 20-store
-  API cap means the result may be incomplete, even after sorting by proximity.
-
-## Privacy and shared services
-
-There is no analytics, user account, server database or address persistence. The app
-keeps searches in memory only. Searching explicitly sends the text to **Photon**;
-choosing a result in live mode sends coordinates to **Salling**; viewing the map
-requests tiles from **OpenStreetMap**. Hosts/providers may retain their own request logs.
-Geolocation is used only after the user clicks the location button and the browser
-permits access. Fonts are bundled locally.
+There is no analytics, app database, account requirement for visitors or saved address
+history. Photon receives an explicitly submitted search; Salling receives the chosen
+coordinates; OpenStreetMap serves visible map tiles. The generation Worker receives
+selected product names, pantry items, portions, time, diet preference and variant.
+**Address, coordinates, store name, prices and the Salling key are not sent to the
+language model.** Hosting/inference providers still receive network metadata and may
+retain their own logs. The Worker disables optional observability and does not log
+prompts, responses or tokens. IP addresses are used for burst limiting.
 
 Photon's public demo API permits reasonable project use without an API key but has
-no availability guarantee. The app submits on user action, caches repeat queries
-and throttles new requests in each tab. The provider can be changed in `config.json`;
-use a dedicated provider if traffic grows. This app does not use the retired DAWA
-service or the public Nominatim search API.
+no availability guarantee. Search is explicit, cached and throttled per tab. Providers
+can be changed in config. OSM tiles use attribution, caching and normal Referer headers;
+there is no bulk/offline download. Automated tests intercept both services. Fonts are
+bundled locally. There is no model training or dataset collection in this app.
 
-OSM tiles use the required HTTPS URL, visible attribution, browser caching and normal
-Referer headers. There is no tile prefetch/offline download. Automated tests intercept
-tile and search requests rather than loading shared services.
+## Deployment
+
+The Pages workflow tests and builds only pushes to `main`; feature branches do not
+publish. `SALLING_FRONTEND_KEY` and `RECIPE_ENDPOINT` are public repository variables
+injected into `dist/config.json`. Private model tokens belong only in Worker secrets.
+Frontend and Worker deploy independently. Validate the Worker and recipe quality
+before replacing the public frontend with this generation-only branch.
 
 ## Sources checked 1 November 2026
 
@@ -176,5 +218,12 @@ tile and search requests rather than loading shared services.
 - [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages)
 - [Hugging Face Spaces requirements](https://huggingface.co/docs/hub/spaces-overview)
 
-App code and original templates: MIT. External Salling data, map tiles, OpenStreetMap
-data and dependencies retain their respective terms; the code licence does not relicense them.
+- [Hugging Face inference pricing](https://huggingface.co/docs/inference-providers/en/pricing)
+- [Hugging Face chat-completion API](https://huggingface.co/docs/inference-providers/en/tasks/chat-completion)
+- [Workers AI pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/)
+- [Cloudflare Qwen3 model](https://developers.cloudflare.com/workers-ai/models/qwen3-30b-a3b-fp8/)
+- [Workers AI JSON mode](https://developers.cloudflare.com/workers-ai/features/json-mode/)
+- [Rate limiting scope](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)
+
+App code: MIT. External data, map tiles, models and dependencies retain their own
+terms; the code licence does not relicense them.

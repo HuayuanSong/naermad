@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "naermad-recipes",
+  "main": "generation/worker.js",
+  "compatibility_date": "2026-11-01",
+  "ai": { "binding": "AI" },
+  "vars": {
+    "RECIPE_PROVIDER": "cloudflare",
+    "CF_MODEL": "@cf/qwen/qwen3-30b-a3b-fp8",
+    "ALLOWED_ORIGINS": "https://huayuansong.github.io",
+  },
+  "ratelimits": [
+    {
+      "name": "RATE_LIMITER",
+      "namespace_id": "68123001",
+      "simple": { "limit": 3, "period": 60 },
+    },
+  ],
+  "observability": { "enabled": false },
+}
