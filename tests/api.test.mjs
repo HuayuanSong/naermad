@@ -133,3 +133,14 @@ test("handles both Retry-After forms", () => {
   assert.equal(parseRetryAfter(new Date(now + 5000).toUTCString(), now), 5000);
   assert.equal(parseRetryAfter("nonsense", now), 0);
 });
+
+test("malformed geocoder responses use the documented error instead of leaking TypeErrors", async () => {
+  for (const response of [null, [], { features: null }]) {
+    const api = createApi(config, {
+      fetcher: async () => Response.json(response),
+    });
+    await assert.rejects(api.search("Aarhus H"), {
+      message: "Adressesøgningen returnerede et ukendt svar.",
+    });
+  }
+});

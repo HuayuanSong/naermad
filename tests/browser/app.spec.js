@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { demoData } from "../../src/demo.js";
+import { demoData, DEMO_ORIGIN } from "../../src/demo.js";
 import AxeBuilder from "@axe-core/playwright";
 // No automated map tile downloading or geocoder load. Upstream APIs are fixture-backed here.
 test.beforeEach(async ({ page }) => {
@@ -81,6 +81,133 @@ async function selectBroccoli(page) {
     .getByRole("button", { name: "Vælg Broccoli · 1 stk.", exact: true })
     .click();
 }
+
+async function connectInventory(page, inventory) {
+  await page.route("**/config.json", (route) =>
+    route.fulfill({
+      json: { ...config, sallingFrontendKey: "fixture-only-public-key" },
+    }),
+  );
+  await page.route("https://photon.komoot.io/**", (route) =>
+    route.fulfill({
+      json: {
+        features: [
+          {
+            properties: { countrycode: "DK", name: "Aarhus H" },
+            geometry: { coordinates: [DEMO_ORIGIN.lon, DEMO_ORIGIN.lat] },
+          },
+        ],
+      },
+    }),
+  );
+  await page.route("https://api.sallinggroup.com/**", (route) =>
+    route.fulfill({ json: inventory }),
+  );
+  await page.goto("/");
+  await page.locator("#address").fill("Aarhus H");
+  await page.locator("#search-button").click();
+  await page.locator('[data-address="0"]').click();
+  await selectBroccoli(page);
+}
+
+test("an offer expiring at another store does not discard the current recipe", async ({
+  page,
+}) => {
+  const now = Date.now();
+  await page.clock.install({ time: now });
+  const inventory = demoData(now);
+  inventory[1].clearances[0].offer.endTime = new Date(
+    now + 30000,
+  ).toISOString();
+  await connectFixture(page);
+  await connectInventory(page, inventory);
+  await page.locator("#generate").click();
+  await expect(page.locator(".recipe-card")).toHaveCount(1);
+  await page.clock.fastForward(61000);
+  await expect(page.locator('[data-store="demo-2"]')).toContainText(
+    "7 datovarer",
+  );
+  await expect(page.locator(".recipe-card")).toHaveCount(1);
+  await expect(page.locator(".selection-heading")).toContainText(
+    "1 varer valgt",
+  );
+});
+
+test("a recipe response cannot revive an offer that expired while the model was working", async ({
+  page,
+}) => {
+  const now = Date.now();
+  await page.clock.install({ time: now });
+  const inventory = demoData(now);
+  inventory[0].clearances[0].offer.endTime = new Date(
+    now + 30000,
+  ).toISOString();
+  let release;
+  await connectFixture(page, async (route, input) => {
+    await new Promise((resolve) => {
+      release = resolve;
+    });
+    await route.fulfill({ json: generated(input) });
+  });
+  await connectInventory(page, inventory);
+  await page.locator("#generate").click();
+  await expect.poll(() => Boolean(release)).toBe(true);
+  // The periodic expiry check has not run yet.
+  await page.clock.fastForward(31000);
+  release();
+  await expect(page.locator("#cancel-generation")).toBeHidden();
+  await expect(page.locator(".recipe-card")).toHaveCount(0);
+  await expect(page.locator(".selection-heading")).toContainText(
+    "0 varer valgt",
+  );
+  await expect(page.locator("#message")).toContainText(
+    "Udløbne tilbud er fjernet",
+  );
+});
+
+test("location controls wait for configuration and the map can open safely during startup", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  let release;
+  const pendingConfig = new Promise((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/config.json", async (route) => {
+    await pendingConfig;
+    await route.fulfill({ json: config });
+  });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.locator("#map-disclosure > summary").click();
+  await page.locator("#language").selectOption("en");
+  await expect(page.locator("#search-button")).toBeDisabled();
+  await expect(page.locator("#locate")).toBeDisabled();
+  expect(errors).toEqual([]);
+  release();
+  await expect(page.locator(".store-card")).toHaveCount(3);
+  await expect(page.locator("#search-button")).toBeEnabled();
+  await expect(page.locator(".leaflet-container")).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("a configuration failure keeps location controls disabled after changing language", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.route("**/config.json", (route) =>
+    route.fulfill({ status: 503, body: "Unavailable" }),
+  );
+  await page.goto("/");
+  await expect(page.locator("#mode-badge")).toHaveText("Ikke tilsluttet");
+  await page.locator("#language").selectOption("en");
+  await page.locator("#map-disclosure > summary").click();
+  await expect(page.locator("#search-button")).toBeDisabled();
+  await expect(page.locator("#locate")).toBeDisabled();
+  expect(errors).toEqual([]);
+});
+
 test("recipe is generated only on request, with selected products, portions and explicit extras", async ({
   page,
 }) => {

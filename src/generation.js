@@ -33,11 +33,11 @@ export function generationInput(offers, selected, settings) {
 
 export function ideaCandidates(offers, variant = 0) {
   const seen = new Set();
+  const now = Date.now();
   const eligible = offers.filter((o) => {
     const key = o.name.trim().toLocaleLowerCase("da");
     if (
-      Date.parse(o.endsAt) <= Date.now() ||
-      !Number.isFinite(Date.parse(o.endsAt)) ||
+      !(Date.parse(o.endsAt) > now) ||
       o.name.length > 240 ||
       !hasDescriptiveName(o.name) ||
       seen.has(key)
@@ -52,9 +52,9 @@ export function ideaCandidates(offers, variant = 0) {
       : 0;
   return {
     total: eligible.length,
-    offers: [...eligible.slice(start), ...eligible.slice(0, start)].slice(
-      0,
-      MAX_IDEA_PRODUCTS,
+    offers: Array.from(
+      { length: Math.min(eligible.length, MAX_IDEA_PRODUCTS) },
+      (_, index) => eligible[(start + index) % eligible.length],
     ),
   };
 }
@@ -137,9 +137,12 @@ export async function requestRecipe(endpoint, input, signal) {
   } catch (e) {
     if (e.name === "AbortError") throw e;
     if (e.name === "TimeoutError")
-      throw new Error("Modellen svarede ikke i tide. Prøv igen om lidt.");
+      throw new Error("Modellen svarede ikke i tide. Prøv igen om lidt.", {
+        cause: e,
+      });
     throw new Error(
       "Forbindelsen til opskriftsmodellen fejlede. Prøv igen om lidt.",
+      { cause: e },
     );
   }
   let data;
@@ -150,7 +153,9 @@ export async function requestRecipe(endpoint, input, signal) {
   }
   if (!response.ok)
     throw new Error(
-      data.error || "Opskriften kunne ikke laves. Prøv igen senere.",
+      typeof data?.error === "string" && data.error.trim()
+        ? data.error
+        : "Opskriften kunne ikke laves. Prøv igen senere.",
     );
   return data;
 }

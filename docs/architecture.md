@@ -82,7 +82,7 @@ cooked/drained weights.
 flowchart TB
     repo["GitHub repository"]
     vars["Public repository variables<br/>SALLING_FRONTEND_KEY and RECIPE_ENDPOINT"]
-    actions["GitHub Actions<br/>npm ci, tests and Vite build"]
+    actions["GitHub Actions<br/>npm ci, lint, tests and Vite build"]
     pages["GitHub Pages<br/>dist/"]
     browser["Visitor's browser"]
     cli["Wrangler CLI<br/>Separate Worker deployment"]
@@ -98,7 +98,7 @@ flowchart TB
 ```
 
 The Pages workflow publishes pushes to `main` and can also be run manually.
-It runs unit tests, browser tests and the Vite build before deploying `dist/`.
+It runs lint, unit tests, browser tests and the Vite build before deploying `dist/`.
 It does **not** deploy the Worker. Worker changes require a separate Wrangler
 deployment; changing the model or prompt also requires live output review.
 

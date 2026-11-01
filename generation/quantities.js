@@ -75,6 +75,7 @@ function positiveNumber(value) {
 export function normalizeQuantity(raw, language = "da") {
   if (typeof raw === "string") {
     const value = raw.trim();
+    // eslint-disable-next-line no-control-regex -- Quantities must not contain control characters.
     if (!value || value.length > 80 || /[\u0000-\u001f]/.test(value))
       return null;
     if (specialPhrases.has(value.toLowerCase())) return value;

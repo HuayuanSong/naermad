@@ -111,7 +111,7 @@ CORS preflight requests. It never retries or switches providers automatically.
 4. Check the public site from its real origin: search, choose a store and generate
    a recipe. Check quantities, discounted-item totals and both languages.
 
-The [workflow](../.github/workflows/pages.yml) installs dependencies, runs unit and
+The [workflow](../.github/workflows/pages.yml) installs dependencies, lints, runs unit and
 browser tests, builds with Vite and publishes `dist/`. It sets
 `SALLING_KEY_KIND=frontend` and injects repository variables into `dist/config.json`.
 Changing a repository variable requires another build. Worker deployments are
@@ -120,6 +120,7 @@ separate; this workflow only publishes the frontend.
 ## Checks
 
 ```sh
+npm run lint
 npm test
 npx playwright install chromium
 npm run test:browser
@@ -130,6 +131,11 @@ npx wrangler deploy --dry-run
 On Linux CI, Playwright uses `npx playwright install --with-deps chromium`.
 An existing Chromium-compatible executable can be selected with
 `PLAYWRIGHT_EXECUTABLE_PATH`.
+
+[Oxlint](https://oxc.rs/docs/guide/usage/linter.html) runs correctness rules, including
+undefined names and unused variables, with separate browser, Worker and Node globals.
+`npm run lint` fails on errors or warnings; CI runs it before tests and deployment.
+Generated builds and test reports are excluded. Prettier handles formatting.
 
 Browser tests intercept geocoding, map tiles, store data and generation, using
 explicitly synthetic model responses. They test integration and interaction, not

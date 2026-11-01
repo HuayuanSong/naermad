@@ -73,6 +73,7 @@ generation needs a configured Worker endpoint. Follow the
 To check the app:
 
 ```sh
+npm run lint
 npm test
 npx playwright install chromium
 npm run test:browser

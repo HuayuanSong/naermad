@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { validateRequest, validateRecipe } from "../generation/contract.js";
 import worker, { generateRecipe } from "../generation/worker.js";
-import { generationInput } from "../src/generation.js";
+import { generationInput, requestRecipe } from "../src/generation.js";
 
 const input = () => ({
   language: "da",
@@ -39,6 +39,28 @@ const req = (body = input(), options = {}) =>
     body: JSON.stringify(body),
     ...options,
   });
+
+test("malformed inference error bodies remain readable and do not trigger retries", async (t) => {
+  let calls = 0;
+  let body;
+  t.mock.method(globalThis, "fetch", async () => {
+    calls++;
+    return Response.json(body, { status: 503 });
+  });
+  for (body of [null, { error: {} }, { error: "" }]) {
+    await assert.rejects(
+      requestRecipe("https://example.test/recipe", input()),
+      {
+        message: "Opskriften kunne ikke laves. Prøv igen senere.",
+      },
+    );
+  }
+  body = { error: "Prøv igen senere." };
+  await assert.rejects(requestRecipe("https://example.test/recipe", input()), {
+    message: "Prøv igen senere.",
+  });
+  assert.equal(calls, 4);
+});
 
 test("request validation bounds inputs and excludes location, prices and credentials", () => {
   const value = validateRequest({

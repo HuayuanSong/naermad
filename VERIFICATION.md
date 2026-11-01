@@ -291,3 +291,26 @@ an English egg/spinach recipe with `4 pcs`, `150 g`, `15 ml` and explicit season
 instructions. Units appeared in the shopping list and the discounted-products cost
 calculated correctly. This check used the labelled fictional inventory via a config
 fixture, made one real model request, and observed no page errors or retries.
+
+## Correctness and code-simplifier review
+
+A [two-pass review](docs/code-review-2026-11-01.md) fixed initialization, malformed
+response and offer-expiry edge cases, then consolidated duplicated generation and
+output-decoding logic. The six new regression tests failed before their fixes.
+All **41 unit/API tests and 23 browser tests** pass after the changes. Four saved
+synthetic inputs preserve exactly the same recipe/ideas prompts and JSON schemas.
+The frontend build, Worker packaging dry-run, formatting and diff checks pass.
+No additional live inference was used; these checks do not measure recipe quality.
+
+## Release checks and CI linting
+
+Oxlint now checks correctness, undefined names and unused variables before the
+existing tests and Pages deployment. A temporary deliberate-error check confirmed
+that undefined names and unused variables fail lint. Browser, Worker and Node
+files have separate globals; generated files are excluded. Three narrow inline
+exceptions preserve intentional control-character validation expressions.
+
+A clean `npm ci`, lint, all 41 unit/API tests, all 23 browser tests, the frontend
+build and Worker packaging dry-run pass. The four prompt/schema comparisons remain
+unchanged, as do all existing locked dependency versions. `npm audit` reports zero
+known vulnerabilities at the time of this release check.

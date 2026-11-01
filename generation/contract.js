@@ -1,4 +1,5 @@
 import { quantitySchema, normalizeQuantity } from "./quantities.js";
+import { parseModelOutput } from "./model-output.js";
 
 export const MAX_PRODUCTS = 6;
 export const MAX_IDEA_PRODUCTS = 60;
@@ -19,6 +20,7 @@ const clean = (value, max) => {
     typeof value !== "string" ||
     !value.trim() ||
     value.length > max ||
+    // eslint-disable-next-line no-control-regex -- Reject control characters in untrusted input.
     /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value)
   ) {
     throw new RecipeError("Et tekstfelt mangler eller er for langt.");
@@ -26,41 +28,43 @@ const clean = (value, max) => {
   return value.trim();
 };
 
+const packagingWords = new Set([
+  "salling",
+  "princip",
+  "økologisk",
+  "økologiske",
+  "netto",
+  "føtex",
+  "bilka",
+  "styk",
+  "stykker",
+]);
+const shortFoodNames = new Set([
+  "æg",
+  "ris",
+  "mel",
+  "ost",
+  "løg",
+  "kål",
+  "ærter",
+  "te",
+  "øl",
+  "vin",
+  "is",
+  "and",
+  "lam",
+  "laks",
+  "lax",
+]);
+
 export function hasDescriptiveName(name) {
   // An all-abbreviation label such as "SF BP M. 250G" gives the model no
   // reliable ingredient identity. This detects obvious codes, not all ambiguity.
   const words = name.toLocaleLowerCase("da").match(/\p{L}+/gu) || [];
-  const packaging = new Set([
-    "salling",
-    "princip",
-    "økologisk",
-    "økologiske",
-    "netto",
-    "føtex",
-    "bilka",
-    "styk",
-    "stykker",
-  ]);
-  const shortFoods = new Set([
-    "æg",
-    "ris",
-    "mel",
-    "ost",
-    "løg",
-    "kål",
-    "ærter",
-    "te",
-    "øl",
-    "vin",
-    "is",
-    "and",
-    "lam",
-    "laks",
-    "lax",
-  ]);
   return words.some(
     (word) =>
-      shortFoods.has(word) || (word.length >= 4 && !packaging.has(word)),
+      shortFoodNames.has(word) ||
+      (word.length >= 4 && !packagingWords.has(word)),
   );
 }
 
@@ -225,18 +229,10 @@ export function validateRecipe(raw, input) {
       502,
     );
   };
-  if (typeof raw === "string") {
-    // Some Qwen hosts include an empty thought tag even in non-thinking mode.
-    const text = raw
-      .replace(/^\s*<think>[\s\S]*?<\/think>\s*/, "")
-      .trim()
-      .replace(/^```(?:json)?\s*/, "")
-      .replace(/\s*```$/, "");
-    try {
-      raw = JSON.parse(text);
-    } catch {
-      fail();
-    }
+  try {
+    raw = parseModelOutput(raw);
+  } catch {
+    fail();
   }
   if (
     !raw ||

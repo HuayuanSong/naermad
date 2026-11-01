@@ -111,21 +111,31 @@ export function normalizeStores(raw, origin, radius, now = Date.now()) {
     .sort((a, b) => a.distance - b.distance);
 }
 
-export const formatMoney = (value, language = "da") =>
-  new Intl.NumberFormat(language === "en" ? "en-GB" : "da-DK", {
+const moneyFormatters = {};
+const timeFormatters = {};
+for (const [language, locale] of [
+  ["da", "da-DK"],
+  ["en", "en-GB"],
+]) {
+  moneyFormatters[language] = new Intl.NumberFormat(locale, {
     style: "currency",
     currency: "DKK",
     maximumFractionDigits: 2,
-  }).format(value);
-export function formatTime(value, language = "da") {
-  const timestamp = typeof value === "number" ? value : Date.parse(value);
-  if (value == null || !Number.isFinite(timestamp))
-    return language === "en" ? "unknown" : "ukendt";
-  return new Intl.DateTimeFormat(language === "en" ? "en-GB" : "da-DK", {
+  });
+  timeFormatters[language] = new Intl.DateTimeFormat(locale, {
     timeZone: "Europe/Copenhagen",
     day: "numeric",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(timestamp));
+  });
+}
+export function formatMoney(value, language = "da") {
+  return moneyFormatters[language === "en" ? "en" : "da"].format(value);
+}
+export function formatTime(value, language = "da") {
+  const timestamp = typeof value === "number" ? value : Date.parse(value);
+  if (value == null || !Number.isFinite(timestamp))
+    return language === "en" ? "unknown" : "ukendt";
+  return timeFormatters[language === "en" ? "en" : "da"].format(timestamp);
 }

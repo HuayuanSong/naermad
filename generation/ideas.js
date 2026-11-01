@@ -5,6 +5,7 @@ import {
   outputLanguage,
   languageRules,
 } from "./contract.js";
+import { parseModelOutput } from "./model-output.js";
 
 export function ideasSchema(input) {
   return {
@@ -75,23 +76,16 @@ export function validateIdeas(raw, input) {
       typeof value !== "string" ||
       !value.trim() ||
       value.length > max ||
+      // eslint-disable-next-line no-control-regex -- Reject control characters in model output.
       /[\u0000-\u001f]/.test(value)
     )
       fail();
     return value.trim();
   };
-  if (typeof raw === "string") {
-    try {
-      raw = JSON.parse(
-        raw
-          .replace(/^\s*<think>[\s\S]*?<\/think>\s*/, "")
-          .trim()
-          .replace(/^```(?:json)?\s*/, "")
-          .replace(/\s*```$/, ""),
-      );
-    } catch {
-      fail();
-    }
+  try {
+    raw = parseModelOutput(raw);
+  } catch {
+    fail();
   }
   if (!raw || typeof raw !== "object") fail();
   if (raw.status === "cannot_create")

@@ -27,10 +27,9 @@ export function createApi(
     if (cache.size >= 50) cache.delete(cache.keys().next().value);
     cache.set(key, value);
   };
-  async function json(url, options) {
-    let response;
+  async function fetchResponse(url, options) {
     try {
-      response = await fetcher(url, {
+      return await fetcher(url, {
         ...options,
         signal: AbortSignal.timeout(15000),
         referrerPolicy: "strict-origin-when-cross-origin",
@@ -40,37 +39,36 @@ export function createApi(
         "Forbindelsen kunne ikke oprettes. Tjek dit netværk, eller prøv igen om lidt.",
       );
     }
-    return response;
   }
   return {
     async search(query) {
-      const q = String(query).trim();
-      if (q.length < 3 || q.length > 160)
+      const queryText = String(query).trim();
+      if (queryText.length < 3 || queryText.length > 160)
         throw new ApiError("Skriv en adresse eller et sted på 3–160 tegn.");
-      const cacheKey = q.toLocaleLowerCase("da");
+      const cacheKey = queryText.toLocaleLowerCase("da");
       if (searchCache.has(cacheKey)) return searchCache.get(cacheKey);
       if (now() < nextSearch)
         throw new ApiError("Vent et øjeblik, før du søger igen.");
       nextSearch = now() + 1200;
       const url = new URL(config.geocoderUrl);
       url.search = new URLSearchParams({
-        q,
+        q: queryText,
         limit: "6",
         countrycode: "DK",
       }).toString();
-      const r = await json(url);
-      if (!r.ok)
+      const response = await fetchResponse(url);
+      if (!response.ok)
         throw new ApiError(
           "Adressesøgningen er midlertidigt utilgængelig. Prøv igen senere.",
-          r.status,
+          response.status,
         );
       let data;
       try {
-        data = await r.json();
+        data = await response.json();
       } catch {
         throw new ApiError("Adressesøgningen returnerede et ukendt svar.");
       }
-      if (!Array.isArray(data.features))
+      if (!Array.isArray(data?.features))
         throw new ApiError("Adressesøgningen returnerede et ukendt svar.");
       const seen = new Set();
       const places = data.features.flatMap((f) => {
@@ -139,13 +137,16 @@ export function createApi(
           geo: `${origin.lat},${origin.lon}`,
           radius: String(radius),
         }).toString();
-        const r = await json(url, {
+        const response = await fetchResponse(url, {
           headers: { Authorization: `Bearer ${config.sallingFrontendKey}` },
         });
-        const wait = parseRetryAfter(r.headers.get("Retry-After"), now());
+        const wait = parseRetryAfter(
+          response.headers.get("Retry-After"),
+          now(),
+        );
         nextSallingRequest = Math.max(nextSallingRequest, now() + wait);
-        if (!r.ok) {
-          if (r.status === 429) {
+        if (!response.ok) {
+          if (response.status === 429) {
             nextSallingRequest = Math.max(nextSallingRequest, now() + 60000);
             throw new ApiError(
               "Sallings forespørgselsgrænse er nået. Prøv igen senere; dagskvoten kan være brugt.",
@@ -153,19 +154,19 @@ export function createApi(
               nextSallingRequest - now(),
             );
           }
-          if (r.status === 401 || r.status === 403)
+          if (response.status === 401 || response.status === 403)
             throw new ApiError(
               "Salling-adgangen virker ikke. Webstedets nøgle, tilladelser eller tilladte domæne skal kontrolleres.",
-              r.status,
+              response.status,
             );
           throw new ApiError(
             "Tilbuddene kunne ikke hentes fra Salling lige nu. Prøv igen senere.",
-            r.status,
+            response.status,
           );
         }
         let raw;
         try {
-          raw = await r.json();
+          raw = await response.json();
         } catch {
           throw new ApiError("Salling returnerede et ukendt svar.");
         }
