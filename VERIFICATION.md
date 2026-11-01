@@ -21,14 +21,25 @@ and installs the Chromium version required by the locked Playwright dependency.
   and other local places. API fixtures are used for automated tests; map tiles are
   intercepted so test runs do not burden community servers.
 - Production build passed; `npm audit --omit=dev` reported zero known vulnerabilities
-  at the time of verification. The build contains no configured Salling key.
+  at the time of verification. The deployment's runtime configuration now contains
+  the dedicated, intentionally public Salling frontend key, supplied by a repository
+  variable rather than tracked source.
 
-## Not yet verified
+## Live Salling connection
 
-An authenticated Salling production response, the owner's frontend operation scopes,
-origin restrictions and account-specific quota remain unverified because no key is
-configured. The public version must remain labelled **demo** until connected. The
-adapter follows the official published examples and is tested against that schema.
+After the owner signed in to Salling's developer portal, the nearby food-waste read
+operation was granted, a Frontend / Website application was created, and a production
+key was issued with exactly one allowed origin: `https://huayuansong.github.io`.
+Only `GET /v1/food-waste` in the production v1 environment is included in its scope.
+
+A real browser request from the GitHub Pages origin on 1 November 2026 returned
+HTTP 200 for a 3 km search around Rådhuspladsen, Copenhagen: **17 stores and 315 raw
+clearance records**. The app displayed Netto Rådhuspladsen with 26 accepted offers
+and recipe suggestions. Counts are observations at that time and will change.
+The account's actual daily quota has not been load-tested; the app retains caching
+and Retry-After handling rather than intentionally exhausting it.
+
+## Remaining limitations
 
 Recipe templates have not been kitchen-tested. Matching is based on names, not full
 ingredient labels; users can correct classifications. No nutritional, allergen-free,

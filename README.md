@@ -6,10 +6,14 @@ recipes that use them.
 
 **Website:** https://huayuansong.github.io/naermad/
 
-The initial public deployment is a **clearly labelled demo**. Its three stores,
-inventory and prices are fictional examples around Aarhus. Address search and
-the map use real OpenStreetMap data. A demo search outside Aarhus returns no demo
-stores; example stores are never moved to a user's location.
+The public deployment is **connected to Salling's live Anti Food Waste API**.
+Search for an address or place in Denmark, choose a participating store, and browse
+its currently reported markdowns. The production frontend key is restricted to
+`https://huayuansong.github.io` and the nearby food-waste read operation.
+
+Local builds and forks without a configured key still use a **clearly labelled demo**:
+three fictional stores, inventory and prices around Aarhus. Address search and the
+map use real OpenStreetMap data. Demo stores are never moved to a user's location.
 
 ## What works
 
@@ -88,10 +92,17 @@ Face token. Do not put a confidential token in a `VITE_*` variable or the public
 If your account cannot grant the food-waste operation to a frontend application, stop
 here and use a server-side proxy with a secret instead; do not publish a backend key.
 
-The connector has been checked against Salling's published response examples and
-tested using fixtures. An authenticated production call remains **unverified until
-the owner supplies the scoped frontend key**. The current OpenAPI download requires
-portal login; no undocumented auth or demo-site credentials are used.
+The connector has been checked against Salling's published response examples, tested
+using fixtures, and verified with an authenticated production call from the site's
+GitHub Pages origin. On 1 November 2026 a search around Rådhuspladsen, Copenhagen,
+returned 17 stores and 315 raw clearance records; these are time-specific observations,
+not guaranteed availability. The app filtered the response and displayed actual
+store inventory and recipe matches. No undocumented auth or borrowed credentials are used.
+
+The owner's production key is backed up in the ignored `.env.production.local` file
+and configured as the GitHub Actions repository variable. It is deliberately absent
+from tracked source. `.env.local` remains independent, so local development can use
+its own origin-restricted key without broadening the production key's allowed origins.
 
 ## Hosting
 
