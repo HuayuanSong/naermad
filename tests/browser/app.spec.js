@@ -110,6 +110,45 @@ async function connectInventory(page, inventory) {
   await selectBroccoli(page);
 }
 
+test("refresh preserves the selected store and the existing inventory cache policy", async ({
+  page,
+}) => {
+  let stockCalls = 0;
+  page.on("request", (request) => {
+    if (request.url().startsWith("https://api.sallinggroup.com/")) stockCalls++;
+  });
+  await connectInventory(page, demoData());
+  await page.locator('[data-store="demo-3"]').click();
+  await page.locator("#refresh").click();
+  await expect(page.locator(".store-card.active")).toHaveAttribute(
+    "data-store",
+    "demo-3",
+  );
+  await expect(page.locator("#offers .eyebrow")).toContainText("Åen");
+  expect(stockCalls).toBe(1);
+});
+
+test("refresh falls back to an available store when the selected store disappears", async ({
+  page,
+}) => {
+  await page.clock.install({ time: Date.now() });
+  await connectInventory(page, demoData());
+  await page.locator('[data-store="demo-3"]').click();
+  await page.route("https://api.sallinggroup.com/**", (route) =>
+    route.fulfill({
+      json: demoData().filter((row) => row.store.id !== "demo-3"),
+    }),
+  );
+  await page.clock.fastForward(5 * 60000);
+  await page.locator("#refresh").click();
+  await expect(page.locator(".store-card")).toHaveCount(2);
+  await expect(page.locator(".store-card.active")).toHaveAttribute(
+    "data-store",
+    "demo-2",
+  );
+  await expect(page.locator("#offers .eyebrow")).toContainText("Midtbyen");
+});
+
 test("an offer expiring at another store does not discard the current recipe", async ({
   page,
 }) => {

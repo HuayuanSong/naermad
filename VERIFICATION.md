@@ -334,3 +334,16 @@ stock request; English persisted after reload. No page errors or mobile page/dia
 overflow were observed. This is an integration check, not a model-quality benchmark.
 The prior Worker version `f3ce30c2-6348-4829-ae44-5d3d73d2ff37` remains in deployment
 history; the prior frontend source is available at `e399544`.
+
+## Independent bug hunt (local)
+
+A [three-reviewer bug hunt](docs/bug-hunt-2026-11-01.md) reproduced and corrected
+five issues: store selection after refresh, partial spaced-number pack parsing,
+unsupported multipack labels, weighted-price rounding and an existing output-guard
+negation gap. Six regression tests were added; genuine prohibitions were also added
+to the existing output-validation test.
+
+All 45 unit/API tests and 25 browser tests pass locally, alongside lint, frontend
+build and Worker packaging checks. Four saved prompt/schema cases remain unchanged.
+This round used synthetic data and provider fixtures, consumed no live API/model
+requests, and has not been deployed.

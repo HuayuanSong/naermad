@@ -24,6 +24,50 @@ const ingredient = (quantity, productId = "p1") => ({
   pantryItem: null,
 });
 
+test("spaced numeric labels cannot silently lose a leading pack-size digit", () => {
+  for (const separator of [" ", "\u00a0", "\u202f"]) {
+    const name = `Kartofler 1${separator}500 g`;
+    assert.equal(packAmount(name), null, name);
+    const cost = calculate([product(name, 10)], [ingredient("600 g")]);
+    assert.equal(cost.estimated, true);
+    assert.equal(cost.lines[0].assumed, true);
+  }
+});
+
+test("unsupported multipack labels stay estimated instead of using one inner container", () => {
+  for (const name of [
+    "Yoghurt 4-pak 125 g",
+    "Yoghurt 4 pak 125 g",
+    "Yoghurt 4-pack 125 g",
+  ]) {
+    assert.equal(packAmount(name), null, name);
+    const cost = calculate([product(name, 10)], [ingredient("300 g")]);
+    assert.equal(cost.estimated, true);
+    assert.equal(cost.lines[0].assumed, true);
+  }
+  const explicit = calculate(
+    [product("Yoghurt 4 x 125 g", 10)],
+    [ingredient("300 g")],
+  );
+  assert.equal(explicit.lines[0].quantity, 1);
+  assert.equal(explicit.estimated, false);
+});
+
+test("weight-priced purchases round exact half cents consistently, including edits", () => {
+  for (const [grams, price] of [
+    [350, 3.3],
+    [700, 1.65],
+  ]) {
+    const offers = [product("Kartofler", price, "kg")];
+    const ingredients = [ingredient(`${grams} g`)];
+    assert.equal(calculate(offers, ingredients).cents, 116);
+    assert.equal(
+      calculate(offers, ingredients, { p1: grams / 1000 }).cents,
+      116,
+    );
+  }
+});
+
 test("matches compatible mass, volume and count labels without inventing pack sizes", () => {
   for (const [text, dimension, value] of [
     ["0,6 kg", "mass", 600],

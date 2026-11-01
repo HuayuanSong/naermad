@@ -522,7 +522,7 @@ function showRecipe() {
   $("#recipe-dialog").showModal();
 }
 
-async function loadStores(origin) {
+async function loadStores(origin, preferredStoreId) {
   if (!state.ready) return;
   const request = ++state.fetchId;
   state.origin = origin;
@@ -549,7 +549,10 @@ async function loadStores(origin) {
       state.capped = result.capped;
     }
     if (request !== state.fetchId) return;
-    selectStore(state.stores[0]?.id);
+    selectStore(
+      state.stores.find((store) => store.id === preferredStoreId)?.id ??
+        state.stores[0]?.id,
+    );
     updateMap(true);
     message(
       state.stores.length
@@ -697,7 +700,7 @@ $("#offers").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
   if (b.hasAttribute("data-reset")) return resetDemo();
-  if (b.id === "refresh") return loadStores(state.origin);
+  if (b.id === "refresh") return loadStores(state.origin, state.store?.id);
   if (b.dataset.offer) {
     const id = b.dataset.offer;
     if (state.selected.has(id)) state.selected.delete(id);

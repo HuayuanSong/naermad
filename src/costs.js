@@ -41,7 +41,11 @@ export function packAmount(name) {
   );
   const matches = [...name.matchAll(regex)];
   if (matches.length !== 1 || /\d\s*[-–/]\s*\d/.test(name)) return null;
-  if (/\d\s*[x×]\s*$/i.test(name.slice(0, matches[0].index))) return null;
+  const prefix = name.slice(0, matches[0].index);
+  // Do not parse the tail of a spaced number or an unsupported nested multipack.
+  if (/\d\s+$|\d\s*[x×]\s*$/i.test(prefix)) return null;
+  // A weight beside "4-pak" may describe one container or the entire pack.
+  if (/\b\d+\s*-?\s*(?:pak(?:ke|ker)?|packs?)\b/iu.test(name)) return null;
   const match = matches[0],
     amount = parseAmount(`${match[2]} ${match[3]}`);
   if (!amount) return null;
@@ -105,9 +109,14 @@ export function recipeCost(
           Number.isInteger(Number((quantity * 1000).toFixed(6))));
     if (!validQuantity) quantity = null;
     const validPrice = Number.isFinite(offer.price) && offer.price >= 0;
+    const priceCents = Math.round(offer.price * 100);
     const cents =
       quantity !== null && validPrice
-        ? Math.round(quantity * Math.round(offer.price * 100))
+        ? Math.round(
+            offer.unit === "kg"
+              ? (Math.round(quantity * 1000) * priceCents) / 1000
+              : quantity * priceCents,
+          )
         : null;
     const shortStock =
       quantity !== null &&

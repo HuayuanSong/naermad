@@ -306,9 +306,19 @@ export function validateRecipe(raw, input) {
     const wash =
       /\b(?:skyl(?:le)?|vask(?:e)?|rinse|wash)\s+(?:(?:den|det|de|rå|råt|råe|først|the|raw|your)\s+)*(?:kylling\p{L}*|kalkun\p{L}*|kød\p{L}*|fjerkræ|chicken\p{L}*|turkey|meat|poultry)/giu;
     for (const match of step.matchAll(wash)) {
-      const prefix = step.slice(0, match.index).split(/[.!?]/).at(-1);
-      if (!/\b(?:ikke|aldrig|undlad|not|never|avoid|don[’']t)\b/i.test(prefix))
-        fail();
+      const prefix = step
+        .slice(0, match.index)
+        .replace(
+          /\b(?:(?:skyl(?:le)?|vask(?:e)?|rinse|wash)\s+(?:eller|or)\s+)+$/iu,
+          "",
+        );
+      // The prohibition must apply to this verb, not an earlier instruction.
+      const prohibited =
+        /\b(?:(?:ikke|undlad)(?:\s+at)?|aldrig|never(?:\s+ever)?|avoid|(?:not|don[’']t)(?:\s+(?:ever|to|(?:need|have)\s+to))?)\s*$/i.test(
+          prefix,
+        );
+      const reminder = /\bglem\s+ikke\s+(?:at\s+)?$/i.test(prefix);
+      if (!prohibited || reminder) fail();
     }
   }
   return {

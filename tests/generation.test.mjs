@@ -316,6 +316,15 @@ test("rejects instructions to wash meat while allowing washing vegetables and ex
     "Vask hænder efter håndtering af kylling.",
     "Do not rinse the chicken.",
     "Never wash raw poultry.",
+    "Do not ever rinse the chicken.",
+    "Never ever wash raw chicken.",
+    "Take care not to rinse the raw chicken.",
+    "Remember not to wash raw chicken.",
+    "Do not rinse or wash raw chicken.",
+    "Du må ikke skylle eller vaske kyllingen.",
+    "You do not need to wash the chicken.",
+    "Undlad at skylle kyllingen.",
+    "Du behøver ikke at skylle kyllingen.",
     "Wash peppers and dice the chicken.",
     "Wash your hands after handling chicken.",
   ]) {
@@ -324,6 +333,29 @@ test("rejects instructions to wash meat while allowing washing vegetables and ex
         .status,
       "ok",
     );
+  }
+});
+test("an unrelated negation cannot bypass the meat-washing output guard", async () => {
+  for (const step of [
+    "Do not overcook the vegetables; rinse the raw chicken under cold water.",
+    "Do not forget to wash the chicken before cooking.",
+    "Skyl ikke grøntsagerne endnu; skyl kyllingen under koldt vand.",
+    "Glem ikke at vaske kyllingen før tilberedning.",
+    "Do not overcook the vegetables; rinse or wash raw chicken.",
+  ]) {
+    let calls = 0;
+    const response = await worker.fetch(req(), {
+      AI: {
+        run: async () => {
+          calls++;
+          return {
+            response: { ...recipe(), steps: [step, ...recipe().steps] },
+          };
+        },
+      },
+    });
+    assert.equal(response.status, 502, step);
+    assert.equal(calls, 1);
   }
 });
 test("selected Cloudflare model uses its documented structured output format and disables thinking", async () => {
