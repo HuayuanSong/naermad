@@ -430,6 +430,9 @@ test("AI chooses products from the store; choosing a suggestion requests its ful
   expect(ideaRequests[0].products[0]).not.toHaveProperty("price");
   expect(recipeRequests).toHaveLength(0);
   await expect(page.locator(".idea-card").first()).toContainText("Køb også");
+  await expect(page.locator(".idea-card .idea-cost").first()).toContainText(
+    "For én pakke/stk. af hver nedsat vare",
+  );
   await page.locator('[data-idea="0"]').click();
   await expect(page.locator("#recipe-dialog")).toBeVisible();
   await expect(page.locator("#recipe-dialog-title")).toHaveText(
@@ -743,4 +746,114 @@ test("switching languages cancels pending generation without another AI request 
   await expect(page.locator(".recipe-card")).toHaveCount(0);
   await expect(page.locator(".offer-card.selected")).toHaveCount(1);
   expect(calls).toBe(1);
+});
+
+test("discounted shopping total buys enough packs, excludes extras, updates without inference and survives downloads/reopening", async ({
+  page,
+}) => {
+  let calls = 0;
+  await connectFixture(page, (r, input) => {
+    calls++;
+    return r.fulfill({ json: generated(input) });
+  });
+  await page.goto("/");
+  await page.locator('[data-store="demo-1"]').click();
+  await page
+    .getByRole("button", { name: "Vælg Kyllingebryst · 400 g", exact: true })
+    .click();
+  await page.locator("#generate").click();
+  await expect(page.locator(".recipe-card .cost-total")).toContainText("50,00");
+  await expect(page.locator(".recipe-card .cost-summary")).toContainText(
+    "Ekstra indkøb og basisvarer er ikke medregnet",
+  );
+  await page.locator("[data-recipe]").click();
+  await page.locator(".cost-breakdown > summary").click();
+  await expect(page.locator(".cost-line")).toHaveCount(1);
+  await expect(page.locator("#cost-p1")).toHaveValue("2");
+  await expect(page.locator(".cost-equation")).toContainText(
+    "2 pakker/stk. × 25,00",
+  );
+  await page.locator("#cost-p1").fill("3");
+  await expect(page.locator("#recipe-cost-summary .cost-total")).toContainText(
+    "75,00",
+  );
+  await expect(page.locator(".recipe-card .cost-total")).toContainText("75,00");
+  await expect(page.locator(".cost-line-note")).toContainText(
+    "Antal angivet af dig",
+  );
+  expect(calls).toBe(1);
+  const downloadPromise = page.waitForEvent("download");
+  await page.locator("#download-list").click();
+  const stream = await (await downloadPromise).createReadStream(),
+    chunks = [];
+  for await (const chunk of stream) chunks.push(chunk);
+  expect(Buffer.concat(chunks).toString()).toContain(
+    "Nedsatte varer i alt: 75,00",
+  );
+  await page.keyboard.press("Escape");
+  await page.locator("[data-recipe]").click();
+  await expect(page.locator("#cost-p1")).toHaveValue("3");
+  await page.locator(".cost-breakdown > summary").click();
+  await page.locator("#cost-p1").fill("");
+  await expect(page.locator("#recipe-cost-summary")).toContainText("delsum");
+  await expect(page.locator("#recipe-cost-summary .cost-total")).toContainText(
+    "+ ?",
+  );
+  await expect(page.locator("#cost-p1")).toHaveAttribute(
+    "aria-invalid",
+    "true",
+  );
+  await page.locator("#cost-p1").fill("2");
+  await page.setViewportSize({ width: 320, height: 800 });
+  expect(
+    await page
+      .locator("#recipe-dialog")
+      .evaluate((el) => el.scrollWidth <= el.clientWidth),
+  ).toBe(true);
+  expect(
+    (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze())
+      .violations,
+  ).toEqual([]);
+  // Closed details still print the purchase quantities and price calculation.
+  await page.locator(".cost-breakdown > summary").click();
+  await page.emulateMedia({ media: "print" });
+  await expect(page.locator(".cost-equation")).toBeVisible();
+});
+
+test("English costs identify a one-pack assumption and accept a corrected quantity", async ({
+  page,
+}) => {
+  await connectFixture(page, (r, input) =>
+    r.fulfill({ json: generatedEnglish(input) }),
+  );
+  await page.goto("/");
+  await selectBroccoli(page);
+  await page.locator("#language").selectOption("en");
+  await page.locator("#generate").click();
+  await expect(page.locator(".recipe-card .cost-label")).toContainText(
+    "estimated total",
+  );
+  await expect(page.locator(".recipe-card .cost-total")).toContainText("8.00");
+  await page.locator("[data-recipe]").click();
+  await page
+    .getByText("View and adjust the cost breakdown", { exact: true })
+    .click();
+  await expect(page.locator(".cost-line-note")).toContainText(
+    "One pack/item assumed",
+  );
+  await page
+    .getByRole("spinbutton", {
+      name: "Quantity to buy: Broccoli · 1 stk.",
+      exact: true,
+    })
+    .fill("2");
+  await expect(page.locator("#recipe-cost-summary .cost-total")).toContainText(
+    "16.00",
+  );
+  await expect(page.locator("#recipe-cost-summary")).not.toContainText(
+    "estimated total",
+  );
+  await expect(page.locator(".cost-line-note")).toContainText(
+    "Quantity entered by you",
+  );
 });

@@ -5,6 +5,16 @@ import "@fontsource/dm-sans/latin-700.css";
 import "leaflet/dist/leaflet.css";
 import "./style.css";
 import L from "leaflet";
+import { recipeCost } from "./costs.js";
+import {
+  costSummary,
+  costBreakdown,
+  costText,
+  ideaCostSummary,
+  costLineTotal,
+  costLineNote,
+  costLineEquation,
+} from "./cost-view.js";
 import { createApi } from "./api.js";
 import { DEMO_ORIGIN, demoData } from "./demo.js";
 import {
@@ -324,7 +334,7 @@ function renderRecipes() {
     (i) => i.productId === null && i.pantryItem === null,
   );
   $("#recipe-list").innerHTML =
-    `<article class="recipe-card generated-card"><div class="recipe-card-top"><span class="match-badge">${t("Ny AI-opskrift")} · ${r.servings} ${r.servings === 1 ? t("person") : t("personer")}</span><span class="recipe-time">${icon("clock")}${r.minutes} min.</span></div><h3>${esc(r.title)}</h3><p>${esc(r.description)}</p><div class="recipe-provenance"><strong>${inspire ? t("Bruger disse datovarer") : t("Bruger dine valgte varer")}</strong><p>${state.recipeContext.products.map((p) => esc(p.name)).join(" · ")}</p></div><div class="recipe-extras"><strong>${extras.length ? t("Køb også") : t("Ingen ekstra indkøb")}</strong><p>${extras.length ? extras.map((i) => esc(i.name)).join(", ") : t("Resten er på din liste over basisvarer.")}</p></div><div class="recipe-card-bottom"><button data-recipe="generated" class="recipe-link">${t("Se opskrift og indkøbsliste")} ${icon("arrow")}</button>${!inspire ? `<button id="another-recipe" class="text-button" ${state.variant >= 20 ? "disabled" : ""}>${t("Lav en anden idé")}</button>` : ""}</div></article>`;
+    `<article class="recipe-card generated-card"><div class="recipe-card-top"><span class="match-badge">${t("Ny AI-opskrift")} · ${r.servings} ${r.servings === 1 ? t("person") : t("personer")}</span><span class="recipe-time">${icon("clock")}${r.minutes} min.</span></div><h3>${esc(r.title)}</h3><p>${esc(r.description)}</p>${costSummary(recipeCost(r, state.recipeContext))}<div class="recipe-provenance"><strong>${inspire ? t("Bruger disse datovarer") : t("Bruger dine valgte varer")}</strong><p>${state.recipeContext.products.map((p) => esc(p.name)).join(" · ")}</p></div><div class="recipe-extras"><strong>${extras.length ? t("Køb også") : t("Ingen ekstra indkøb")}</strong><p>${extras.length ? extras.map((i) => esc(i.name)).join(", ") : t("Resten er på din liste over basisvarer.")}</p></div><div class="recipe-card-bottom"><button data-recipe="generated" class="recipe-link">${t("Se opskrift og indkøbsliste")} ${icon("arrow")}</button>${!inspire ? `<button id="another-recipe" class="text-button" ${state.variant >= 20 ? "disabled" : ""}>${t("Lav en anden idé")}</button>` : ""}</div></article>`;
 }
 function renderIdeas() {
   const result = state.ideas;
@@ -345,7 +355,7 @@ function renderIdeas() {
     result.ideas
       .map(
         (idea, i) =>
-          `<article class="idea-card"><div class="idea-top"><span class="idea-number">${t("IDÉ")} 0${i + 1}</span><span class="recipe-time">${icon("clock")}${t("ca.")} ${idea.minutes} min.</span></div><h3>${esc(idea.title)}</h3><p class="idea-description">${esc(idea.description)}</p><div class="idea-products"><strong>${t("Fra butikkens datovarer")}</strong><ul>${idea.productIds.map((id) => `<li>${esc(names.get(id))}</li>`).join("")}</ul></div><p class="idea-extras"><strong>${idea.extraIngredients.length ? t("Køb også") : t("Resten fra dit køkken")}</strong><br>${idea.extraIngredients.length ? idea.extraIngredients.map(esc).join(", ") : t("Bruger dine angivne basisvarer.")}</p><button class="secondary-button" data-idea="${i}" aria-busy="${state.generating && state.generationKind === "recipe" && state.activeIdea === i}" ${state.generating ? "disabled" : ""}>${state.generating && state.generationKind === "recipe" && state.activeIdea === i ? `${spinner}<span>${t("Skriver opskrift …")}</span>` : `${t("Lav denne opskrift")} ${icon("arrow")}`}</button></article>`,
+          `<article class="idea-card"><div class="idea-top"><span class="idea-number">${t("IDÉ")} 0${i + 1}</span><span class="recipe-time">${icon("clock")}${t("ca.")} ${idea.minutes} min.</span></div><h3>${esc(idea.title)}</h3><p class="idea-description">${esc(idea.description)}</p>${ideaCostSummary(idea, state.ideasContext)}<div class="idea-products"><strong>${t("Fra butikkens datovarer")}</strong><ul>${idea.productIds.map((id) => `<li>${esc(names.get(id))}</li>`).join("")}</ul></div><p class="idea-extras"><strong>${idea.extraIngredients.length ? t("Køb også") : t("Resten fra dit køkken")}</strong><br>${idea.extraIngredients.length ? idea.extraIngredients.map(esc).join(", ") : t("Bruger dine angivne basisvarer.")}</p><button class="secondary-button" data-idea="${i}" aria-busy="${state.generating && state.generationKind === "recipe" && state.activeIdea === i}" ${state.generating ? "disabled" : ""}>${state.generating && state.generationKind === "recipe" && state.activeIdea === i ? `${spinner}<span>${t("Skriver opskrift …")}</span>` : `${t("Lav denne opskrift")} ${icon("arrow")}`}</button></article>`,
       )
       .join("") +
     `<p class="ideas-note">${t("Forslagene er AI-genererede. Mængder og den endelige indkøbsliste kommer med den fulde opskrift.")}</p>`;
@@ -466,7 +476,7 @@ async function generate(ideaIndex) {
 }
 function shoppingText(r) {
   const c = state.recipeContext;
-  return `${r.title} — ${r.servings} ${r.servings === 1 ? t("person") : t("personer")}\n${t("AI-genereret opskrift")}\n${t("Butik:")} ${c.storeName}\n\n${r.ingredients.map((i) => `${i.quantity} ${i.name} [${i.productId ? t("valgt datovare") : i.pantryItem ? t("har hjemme") : t("køb også")}]`).join("\n")}\n\n${r.steps.map((s, i) => `${i + 1}. ${s}`).join("\n\n")}\n\n${t("AI-opskriften er ikke køkkentestet. Tjek mængder, tilberedning, allergener og holdbarhed.")}\nNærmad · https://huayuansong.github.io/naermad/`;
+  return `${r.title} — ${r.servings} ${r.servings === 1 ? t("person") : t("personer")}\n${t("AI-genereret opskrift")}\n${t("Butik:")} ${c.storeName}\n\n${r.ingredients.map((i) => `${i.quantity} ${i.name} [${i.productId ? t("valgt datovare") : i.pantryItem ? t("har hjemme") : t("køb også")}]`).join("\n")}\n\n${costText(recipeCost(r, c))}\n\n${r.steps.map((s, i) => `${i + 1}. ${s}`).join("\n\n")}\n\n${t("AI-opskriften er ikke køkkentestet. Tjek mængder, tilberedning, allergener og holdbarhed.")}\nNærmad · https://huayuansong.github.io/naermad/`;
 }
 function showRecipe() {
   const r = state.generatedRecipe,
@@ -476,10 +486,10 @@ function showRecipe() {
   const offerById = new Map(c.products.map((p, i) => [p.id, c.offers[i]]));
   const group = (title, items) =>
     items.length
-      ? `<h4>${title}</h4><ul>${items.map((i) => `<li><label><input type="checkbox"><span><strong>${esc(i.quantity)}</strong> ${esc(i.name)}</span></label>${i.productId ? `<small class="detail-product">${esc(offerById.get(i.productId).name)} · ${formatMoney(offerById.get(i.productId).price)} ${offerById.get(i.productId).unit === "kg" ? t("pr. kg") : t("pr. salgsenhed")}</small>` : ""}</li>`).join("")}</ul>`
+      ? `<h4>${title}</h4><ul>${items.map((i) => `<li><label><input type="checkbox"><span><strong>${esc(i.quantity)}</strong> ${esc(i.name)}</span></label>${i.productId ? `<small class="detail-product">${esc(offerById.get(i.productId).name)} · ${formatMoney(offerById.get(i.productId).price)} ${offerById.get(i.productId).unit === "kg" ? t("pr. kg") : offerById.get(i.productId).unit === "each" ? t("pr. salgsenhed") : t("Prisenhed ikke oplyst")}</small>` : ""}</li>`).join("")}</ul>`
       : "";
   $("#recipe-detail").innerHTML =
-    `<div class="eyebrow">${t("AI-GENERERET")} · ${r.minutes} ${t("MINUTTER")} · ${r.servings} ${r.servings === 1 ? t("PERSON") : t("PERSONER")}</div><h2 id="recipe-dialog-title">${esc(r.title)}</h2><p class="recipe-intro">${esc(r.description)}</p><div class="recipe-detail-layout"><div class="shopping-list"><h3>${t("Din indkøbsliste")}</h3>${group(
+    `<div class="eyebrow">${t("AI-GENERERET")} · ${r.minutes} ${t("MINUTTER")} · ${r.servings} ${r.servings === 1 ? t("PERSON") : t("PERSONER")}</div><h2 id="recipe-dialog-title">${esc(r.title)}</h2><p class="recipe-intro">${esc(r.description)}</p><section class="recipe-costs" aria-label="${t("Pris på nedsatte varer")}"><div id="recipe-cost-summary" role="status" aria-live="polite">${costSummary(recipeCost(r, c))}</div>${costBreakdown(recipeCost(r, c))}</section><div class="recipe-detail-layout"><div class="shopping-list"><h3>${t("Din indkøbsliste")}</h3>${group(
       t("Valgte datovarer"),
       r.ingredients.filter((i) => i.productId !== null),
     )}${group(
@@ -763,6 +773,29 @@ document.querySelectorAll("dialog").forEach((dialog) => {
         dialog.close();
     }
   });
+});
+$("#recipe-detail").addEventListener("input", (e) => {
+  const input = e.target.closest("[data-cost-quantity]");
+  if (!input || !state.recipeContext || state.generatedRecipe?.status !== "ok")
+    return;
+  const context = state.recipeContext;
+  context.costQuantities ||= {};
+  context.costQuantities[input.dataset.costQuantity] =
+    input.value === "" ? null : input.valueAsNumber;
+  input.setAttribute(
+    "aria-invalid",
+    String(!input.value || !input.validity.valid),
+  );
+  const cost = recipeCost(state.generatedRecipe, context);
+  $("#recipe-cost-summary").innerHTML = costSummary(cost);
+  for (const line of cost.lines) {
+    const row = document.querySelector(`[data-cost-row="${line.id}"]`);
+    row.querySelector(".cost-line-total").textContent = costLineTotal(line);
+    row.querySelector(".cost-line-note").textContent = costLineNote(line);
+    row.querySelector(".cost-equation").textContent = costLineEquation(line);
+    row.querySelector(".cost-stock-warning").hidden = !line.shortStock;
+  }
+  renderRecipes();
 });
 $("#recipe-detail").addEventListener("click", async (e) => {
   const b = e.target.closest("button");

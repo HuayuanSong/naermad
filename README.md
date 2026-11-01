@@ -37,6 +37,21 @@ without automatically requesting stock or another model response.
 Changing products, store or preferences invalidates pending/previous results. The app
 also removes locally expired offers. Lists can be copied, downloaded and printed.
 
+Each full recipe shows the **total for the discounted products you need to buy**
+from the selected store. This excludes extra ingredients and pantry items. Expand
+**Se og ret prisberegning / View and adjust the cost breakdown** to see the store
+prices and change purchase quantities. Costs are also included in copied/downloaded
+lists and printouts. Changing quantities does not make an API or model request.
+
+When recipe quantities match an explicit pack size, whole packs round up: 600 g from
+400 g packs at 25 kr. means two packs and 50 kr. Multiple ingredient references to
+the same product are combined before rounding. Weight-priced products use kilograms.
+If pack size or quantity cannot be matched, one pack/item is explicitly assumed and
+the total is marked estimated. Unknown weight quantities or price units remain
+unpriced and the displayed figure is a subtotal. Low indicated stock is flagged.
+Suggestion cards show a clearly labelled one-of-each basket, since they have no
+recipe quantities yet; the full recipe may require more.
+
 The interface uses a tomato-red, warm-white and plum palette, bold DM Sans headings,
 and a plate/utensils icon. The map and pantry options remain collapsible.
 
@@ -228,8 +243,9 @@ There is no regex-based conversion of prepared dishes into raw ingredients. Prom
 ask the model to respect the actual product form, decline unclear/incompatible inputs
 and distinguish pantry items from extras. These are instructions, not quality guarantees.
 Recipe quantities are generated for the requested servings, not multiplied locally.
-Prices remain the API's price per sales unit; pack counts and total meal costs are
-not inferred from missing package sizes. Stock is not guaranteed at arrival.
+Prices come from the fetched offers, not the language model. Cost calculations use
+explicit quantities where available and disclose assumptions otherwise; they never
+price the additional ingredients or pantry items. Stock is not guaranteed at arrival.
 
 There is no analytics, app database, account requirement for visitors or saved address
 history. Photon receives an explicitly submitted search; Salling receives the chosen

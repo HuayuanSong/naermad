@@ -2,13 +2,13 @@
 
 ## Automated and visual checks
 
-- **28 API/data/generation tests passed.** Coverage includes active markdown filtering,
+- **35 API/data/generation/cost tests passed.** Coverage includes active markdown filtering,
   coordinates, deduplication, Salling request coalescing/cache/errors, bounded generation
   requests, removal of location/credential fields, product and pantry references,
   requested servings/time, invalid model output, both inference adapters, CORS,
   request size limits, burst throttling, sanitized upstream errors, free-quota errors,
   opaque product labels and the narrow raw-meat-washing instruction check.
-- **16 Chromium browser tests passed.** No automatic product selection or generation;
+- **18 Chromium browser tests passed.** No automatic product selection or generation;
   an explicit click sends only selected products/preferences. Tests cover generated
   result provenance, extras, portions, another-idea requests, downloads, cancellation,
   stale response invalidation, missing endpoints, malformed results and provider errors,
@@ -214,3 +214,24 @@ Switching languages preserved selections with only one stock request. The live
 English inspiration-to-recipe flow completed with one request per stage (7.2 s / 9.4 s),
 retained the selected title, and showed no page errors or mobile overflow. English
 persisted after reload. No production service was mocked in that check.
+
+## Discounted-products cost totals
+
+The total covers only the discounted products to buy at the selected store. Pantry
+items and extra ingredients do not contribute. Prices are taken from the fetched
+inventory snapshot; no cost is requested from the language model or another service.
+
+Seven cost tests cover unit/pack parsing, whole-pack rounding, multiple ingredient
+references to one product, kilogram pricing and cent rounding, ambiguous/missing pack
+sizes, edits and invalid quantities, unknown units, low stock and idea previews.
+The browser checks exercise the 600 g / 400 g example (two 25 kr. packs = 50 kr.),
+manual quantity edits without inference, partial totals, download/reopen behavior,
+English assumption labels, 320-pixel layout, axe checks and printing closed details.
+Desktop and mobile screenshots were reviewed. Test recipes are synthetic fixtures.
+
+Only explicit compatible measurements are converted; no gram-per-piece, ingredient
+density or cooked/drained-weight conversion is guessed. One pack/item is assumed
+when an each-priced product cannot be matched, with an estimated label and editable
+quantity. Unknown weight quantities or price units remain missing from a subtotal.
+Prices beyond the indicated stock are marked uncertain. These calculations cannot
+verify model quantities, actual pack labels or stock at arrival.

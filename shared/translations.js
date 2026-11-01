@@ -1,6 +1,44 @@
 // Danish is the default and the source key. Values are trusted application copy;
 // store names, product labels and model output never pass through a DOM translator.
 export const english = {
+  "Nedsatte varer i alt": "Discounted products total",
+  "Nedsatte varer · anslået total": "Discounted products · estimated total",
+  "Nedsatte varer · delsum": "Discounted products · subtotal",
+  "Pris på nedsatte varer": "Cost of discounted products",
+  "Kun de nedsatte varer, du skal købe. Ekstra indkøb og basisvarer er ikke medregnet.":
+    "Only the discounted products you need to buy. Extra ingredients and pantry items are excluded.",
+  "{count} varer mangler en beregnet pris. Se prisberegningen.":
+    "{count} products still need a cost. See the breakdown.",
+  "Tjek antal og lager i prisberegningen.":
+    "Check quantities and stock in the breakdown.",
+  "Se og ret prisberegning": "View and adjust the cost breakdown",
+  "Antallet er det, du skal købe i butikken. Hele pakker rundes op, også når opskriften kun bruger en del. Ret antallet, hvis pakkestørrelsen er en anden.":
+    "Quantities are what you need to buy. Whole packs are rounded up, even if the recipe only uses part of a pack. Adjust the quantity if the pack size differs.",
+  "Opskriften bruger:": "Recipe needs:",
+  "Kg at købe": "Kg to buy",
+  "Pakker/stk. at købe": "Packs/items to buy",
+  "Mængde at købe: {name}": "Quantity to buy: {name}",
+  "Mængde eller prisenhed mangler": "Quantity or price unit missing",
+  "Butikken har ikke oplyst prisenheden. Denne vare er ikke med i delsummen.":
+    "The store has not supplied the price unit. This product is excluded from the subtotal.",
+  "Angiv hvor meget du skal købe, så varen kommer med i totalen.":
+    "Enter how much you need to buy to include this product in the total.",
+  "Antal angivet af dig.": "Quantity entered by you.",
+  "Én pakke/stk. antaget. Tjek størrelsen og ret antallet efter behov.":
+    "One pack/item assumed. Check the size and adjust the quantity if needed.",
+  "Beregnet ud fra opskriftens mængde og varens enhed.":
+    "Calculated from the recipe quantity and the product’s unit.",
+  "pakker/stk.": "packs/items",
+  "Det vejledende lager er mindre end dit behov. Nedsat pris er ikke sikret for hele mængden.":
+    "The indicated stock is below the quantity needed. The discounted price may not cover the full amount.",
+  "Priserne er fra butikkens hentede tilbud. Lager og pris kan ændre sig, inden du kommer frem.":
+    "Prices come from the store’s fetched offers. Stock and prices may change before you arrive.",
+  "Prisen beregnes med den fulde opskrift": "Cost comes with the full recipe",
+  "Forslaget har endnu ingen indkøbsmængder.":
+    "This idea does not yet specify purchase quantities.",
+  "For én pakke/stk. af hver nedsat vare. Opskriften kan kræve flere.":
+    "For one pack/item of each discounted product. The recipe may need more.",
+  "Ekstra ingredienser er ikke medregnet.": "Extra ingredients are excluded.",
   Sprog: "Language",
   "Nærmad, forsiden": "Nærmad, home",
   "Gode råvarer. Nye muligheder.": "Good ingredients. New possibilities.",
