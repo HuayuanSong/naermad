@@ -314,3 +314,23 @@ A clean `npm ci`, lint, all 41 unit/API tests, all 23 browser tests, the fronten
 build and Worker packaging dry-run pass. The four prompt/schema comparisons remain
 unchanged, as do all existing locked dependency versions. `npm audit` reports zero
 known vulnerabilities at the time of this release check.
+
+Published as `37cdfd3` through successful Pages run
+[41353127733](https://github.com/HuayuanSong/naermad/actions/runs/41353127733),
+with Worker version `bfdc3e70-8a55-4469-85ee-0652a571b2f9`. CI passed lint and
+all 64 tests before deployment. The production Worker health check passed and
+the public site's JavaScript bundle matched the locally verified build.
+
+A public browser check against real Copenhagen inventory returned 17 stores and
+generated three English suggestions, then the selected cheese-and-rye-toast recipe.
+It used one stock request, one ideas request (6.8 seconds) and one recipe request
+(17.8 seconds), without automatic retries. The recipe displayed explicit slices
+and grams. Its estimated discounted-item total was DKK 49: one DKK 6 rye bread,
+one DKK 18 sliced cheese and one DKK 25 cheddar. Butter and pantry ingredients
+were excluded; unknown pack sizes remained labelled estimates.
+
+Switching Danish/English preserved the store and manual selection without another
+stock request; English persisted after reload. No page errors or mobile page/dialog
+overflow were observed. This is an integration check, not a model-quality benchmark.
+The prior Worker version `f3ce30c2-6348-4829-ae44-5d3d73d2ff37` remains in deployment
+history; the prior frontend source is available at `e399544`.
