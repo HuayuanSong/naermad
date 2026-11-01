@@ -71,7 +71,7 @@ also produced an instruction to wash raw chicken. That observation led to strong
 prompt instructions and a narrow output rejection rule. These are small exploratory
 comparisons, not a controlled ranking of the models' general abilities.
 
-Final-prompt observations:
+Initial recipe prompt (v3) observations; later prompt changes are recorded below:
 
 | Input / constraint | Expected | Observed | Seconds | Neurons |
 | --- | --- | --- | ---: | ---: |
@@ -273,6 +273,15 @@ all measured ingredients and normalized correctly, including `30 g` butter and
 `150 g` sauce in the Danish sample. Both retained explicit “to taste” seasoning
 instructions. This was a new generation, not a reconstruction of the reported recipe.
 The two requests completed in 12.5 s and 15.1 s; the existing token cap was retained.
+
+The English sample used 1,183 input and 615 output tokens; Danish used 1,168 input
+and 681 output tokens. At the published Gemma rate of 9,091 neurons per million
+input tokens and 27,273 per million output tokens, these correspond to approximately
+27.5 and 29.2 neurons. A fresh 10,000-neuron allowance would cover about 340–360
+similarly sized recipes. The [capacity guide](docs/architecture.md#capacity-and-limitations)
+uses a rounded planning estimate of 300–350. This is an extrapolation from two
+format checks, not a load test; other account usage and longer outputs reduce capacity.
+Source: [Workers AI pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/).
 
 Published as app commit `c1327ab`, Pages run
 [41349630366](https://github.com/HuayuanSong/naermad/actions/runs/41349630366),
