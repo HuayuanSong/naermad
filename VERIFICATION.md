@@ -17,6 +17,8 @@
   recipe dialog and about dialog. This is not a complete accessibility certification.
 - Desktop and 390-pixel mobile screenshots inspected. The browser suite also checks
   320-pixel viewport and dialog overflow. Map tiles/geocoding are intercepted in tests.
+- Vite production build and `git diff --check` passed. The GitHub Pages workflow
+  repeated unit tests, browser tests and the production build successfully.
 
 Successful model responses in automated tests are **synthetic fixtures**. They
 establish application behavior and adapter contracts, not recipe quality. No fixture
@@ -101,4 +103,25 @@ Counts are time-specific observations. The account's daily quota was not load-te
 
 ## Public release verification
 
-Pending the GitHub Pages workflow and an end-to-end check of the newly published build.
+[The deployment workflow](https://github.com/HuayuanSong/naermad/actions/runs/41344218851)
+passed for application commit `1017246`. The published site's configuration contains
+the live Salling frontend connection and the deployed Worker endpoint.
+
+An end-to-end browser check used the **actual published assets, Photon, Salling and
+Cloudflare Worker**, with no intercepted service responses:
+
+- Rådhuspladsen, Copenhagen, 3 km: HTTP 200, **17 stores / 336 raw clearance records**.
+  Netto Rådhuspladsen displayed 26 accepted offers, zero selected products and zero
+  recipes before generation.
+- Selected the store's `FANØ BRØD SIGNATURBRØD`, `XMATURE CHEDDAR CASTELLO` and
+  `BURGUNDERSKINKE MINIMUM`. One explicit generation click returned HTTP 200 in
+  **11.5 seconds**, producing “Luksuriøse Fanø-smørrebrød med moden cheddar og skinke”.
+- The result used all three selected products with quantities for two people, plus
+  confirmed pantry items. It contained 15-minute preparation instructions and separate
+  product provenance. The request contained no address, coordinates, store or Salling key.
+- Gemma reported 871 prompt and 573 completion tokens. No additional Salling request
+  was made while selecting products or generating. The recipe dialog displayed on
+  desktop and 390-pixel mobile without horizontal overflow; no page errors occurred.
+
+This confirms the public integration at the time of testing. Store availability,
+latency and future model responses vary; it does not establish general recipe accuracy.
