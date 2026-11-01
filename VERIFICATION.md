@@ -205,3 +205,12 @@ and canned chickpeas. It returned three English ideas (6.8 s), followed by the c
 ingredients, metric quantities and valid references. A Danish regression request
 returned Danish ideas (7.8 s). These are spot checks, not an accuracy benchmark or
 proof of cooking quality. Prompt versions: `naermad-generated-v5`, `naermad-ideas-v2`.
+
+Published as app commit `1d3d7eb` with successful Pages run
+[41347417939](https://github.com/HuayuanSong/naermad/actions/runs/41347417939)
+and Worker version `65eac757-1d46-4607-9c1b-e2e468404eef`.
+A fresh public browser session searched Copenhagen and displayed 17 stores.
+Switching languages preserved selections with only one stock request. The live
+English inspiration-to-recipe flow completed with one request per stage (7.2 s / 9.4 s),
+retained the selected title, and showed no page errors or mobile overflow. English
+persisted after reload. No production service was mocked in that check.
