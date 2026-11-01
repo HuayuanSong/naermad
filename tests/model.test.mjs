@@ -8,6 +8,7 @@ import {
   recommend,
   INGREDIENTS,
   formatAmount,
+  formatTime,
 } from "../src/model.js";
 import { RECIPES } from "../src/recipes.js";
 import { demoData, DEMO_ORIGIN } from "../src/demo.js";
@@ -30,6 +31,9 @@ test("recognises Danish raw ingredients without treating prepared dishes as raw 
     ["RØGET LAKSEFILET", null],
     ["SPINATPESTO", null],
     ["TØRREDE KIKÆRTER", null],
+    ["KIKÆRTER 500G", null],
+    ["KOGTE KIKÆRTER PÅ DÅSE", "chickpea"],
+    ["FRISK PASTA", null],
     ["VANILJEYOGHURT", null],
     ["CHOKOLADEMÆLK", null],
     ["KYLLINGEBOUILLON", null],
@@ -190,4 +194,7 @@ test("every published template has complete structured ingredients, amounts and 
   }
   assert.equal(formatAmount(300, 4), "600");
   assert.equal(formatAmount(1, 1), "0,5");
+  assert.match(formatTime(now), /13[.:]00/);
+  assert.equal(formatTime(now), formatTime("2026-11-01T12:00:00Z"));
+  assert.equal(formatTime(null), "ukendt");
 });

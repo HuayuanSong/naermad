@@ -272,12 +272,13 @@ export const formatAmount = (quantity, servings) =>
     (quantity * servings) / 2,
   );
 export function formatTime(value) {
-  if (!value || !Number.isFinite(Date.parse(value))) return "ukendt";
+  const timestamp = typeof value === "number" ? value : Date.parse(value);
+  if (value == null || !Number.isFinite(timestamp)) return "ukendt";
   return new Intl.DateTimeFormat("da-DK", {
     timeZone: "Europe/Copenhagen",
     day: "numeric",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(value));
+  }).format(new Date(timestamp));
 }
