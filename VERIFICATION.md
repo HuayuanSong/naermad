@@ -335,7 +335,7 @@ overflow were observed. This is an integration check, not a model-quality benchm
 The prior Worker version `f3ce30c2-6348-4829-ae44-5d3d73d2ff37` remains in deployment
 history; the prior frontend source is available at `e399544`.
 
-## Independent bug hunt (local)
+## Independent bug hunt
 
 A [three-reviewer bug hunt](docs/bug-hunt-2026-11-01.md) reproduced and corrected
 five issues: store selection after refresh, partial spaced-number pack parsing,
@@ -345,5 +345,15 @@ to the existing output-validation test.
 
 All 45 unit/API tests and 25 browser tests pass locally, alongside lint, frontend
 build and Worker packaging checks. Four saved prompt/schema cases remain unchanged.
-This round used synthetic data and provider fixtures, consumed no live API/model
-requests, and has not been deployed.
+The review used synthetic data and provider fixtures, consuming no live stock or
+model requests.
+
+Published as `87b4206` through successful Pages run
+[41354447278](https://github.com/HuayuanSong/naermad/actions/runs/41354447278),
+with Worker version `88513070-ec97-46e8-b4b4-9e25651fec6c`. CI passed lint, all
+70 tests and the frontend build before publication. The Worker health endpoint
+returned HTTP 200 with the Cloudflare provider configured. The public frontend
+returned HTTP 200, its JavaScript bytes matched the verified local build, and its
+production connections were present. No live recipe generation was performed for
+this deployment. The prior Worker version is `bfdc3e70-8a55-4469-85ee-0652a571b2f9`;
+the prior frontend source is `b30f4a5`.
