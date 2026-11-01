@@ -273,3 +273,12 @@ all measured ingredients and normalized correctly, including `30 g` butter and
 `150 g` sauce in the Danish sample. Both retained explicit “to taste” seasoning
 instructions. This was a new generation, not a reconstruction of the reported recipe.
 The two requests completed in 12.5 s and 15.1 s; the existing token cap was retained.
+
+Published as app commit `c1327ab`, Pages run
+[41349630366](https://github.com/HuayuanSong/naermad/actions/runs/41349630366),
+and Worker version `f3ce30c2-6348-4829-ae44-5d3d73d2ff37`. All 58 checks passed.
+A published-frontend browser check against the real production Worker generated
+an English egg/spinach recipe with `4 pcs`, `150 g`, `15 ml` and explicit seasoning
+instructions. Units appeared in the shopping list and the discounted-products cost
+calculated correctly. This check used the labelled fictional inventory via a config
+fixture, made one real model request, and observed no page errors or retries.
