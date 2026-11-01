@@ -1752,8 +1752,9 @@ dialog h3 {
 }
 .generate-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 20px;
+  gap: 12px 20px;
 }
 .generation-status {
   min-height: 22px;
@@ -1761,6 +1762,38 @@ dialog h3 {
   font-size: 13px;
   color: var(--muted);
   line-height: 1.6;
+}
+.generation-status.is-loading {
+  padding: 12px 15px;
+  background: #f0ecf8;
+  border-left: 3px solid #4d3d80;
+  border-radius: 0 8px 8px 0;
+  color: #4d3d80;
+}
+.loading-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: loading-spin 0.8s linear infinite;
+}
+.primary-button[aria-busy="true"],
+.secondary-button[aria-busy="true"] {
+  opacity: 1;
+  cursor: progress;
+}
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation: none;
+  }
 }
 .generated-list {
   display: block;

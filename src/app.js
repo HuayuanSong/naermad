@@ -44,6 +44,7 @@ const paths = {
 };
 const icon = (id, cls = "") =>
   `<svg class="icon ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[id] || paths.leaf}"/></svg>`;
+const spinner = '<span class="loading-spinner" aria-hidden="true"></span>';
 const brandName = { netto: "Netto", foetex: "føtex", bilka: "Bilka" };
 const state = {
   config: null,
@@ -255,11 +256,11 @@ function renderRecipes() {
     !state.config?.recipeEndpoint ||
     (inspire && state.variant >= 20);
   $("#generate").innerHTML = state.generating
-    ? state.generationKind === "ideas"
-      ? "Finder på retter …"
-      : "Skriver din opskrift …"
+    ? `${spinner}<span>${state.generationKind === "ideas" ? "Finder på retter …" : "Skriver din opskrift …"}</span>`
     : `${inspire ? (state.ideas ? "Få nye forslag" : "Foreslå retter") : "Lav en opskrift"} ${icon("arrow")}`;
+  $("#generate").setAttribute("aria-busy", String(state.generating));
   $("#cancel-generation").hidden = !state.generating;
+  $("#generation-status").classList.toggle("is-loading", state.generating);
   $("#generation-status").textContent = state.generating
     ? state.generationKind === "ideas"
       ? "AI finder råvarer, der passer sammen, og skriver forslag til dig."
@@ -306,7 +307,7 @@ function renderIdeas() {
     result.ideas
       .map(
         (idea, i) =>
-          `<article class="idea-card"><div class="idea-top"><span class="idea-number">IDÉ 0${i + 1}</span><span class="recipe-time">${icon("clock")}ca. ${idea.minutes} min.</span></div><h3>${esc(idea.title)}</h3><p class="idea-description">${esc(idea.description)}</p><div class="idea-products"><strong>Fra butikkens datovarer</strong><ul>${idea.productIds.map((id) => `<li>${esc(names.get(id))}</li>`).join("")}</ul></div><p class="idea-extras"><strong>${idea.extraIngredients.length ? "Køb også" : "Resten fra dit køkken"}</strong><br>${idea.extraIngredients.length ? idea.extraIngredients.map(esc).join(", ") : "Bruger dine angivne basisvarer."}</p><button class="secondary-button" data-idea="${i}" ${state.generating ? "disabled" : ""}>Lav denne opskrift ${icon("arrow")}</button></article>`,
+          `<article class="idea-card"><div class="idea-top"><span class="idea-number">IDÉ 0${i + 1}</span><span class="recipe-time">${icon("clock")}ca. ${idea.minutes} min.</span></div><h3>${esc(idea.title)}</h3><p class="idea-description">${esc(idea.description)}</p><div class="idea-products"><strong>Fra butikkens datovarer</strong><ul>${idea.productIds.map((id) => `<li>${esc(names.get(id))}</li>`).join("")}</ul></div><p class="idea-extras"><strong>${idea.extraIngredients.length ? "Køb også" : "Resten fra dit køkken"}</strong><br>${idea.extraIngredients.length ? idea.extraIngredients.map(esc).join(", ") : "Bruger dine angivne basisvarer."}</p><button class="secondary-button" data-idea="${i}" aria-busy="${state.generating && state.generationKind === "recipe" && state.activeIdea === i}" ${state.generating ? "disabled" : ""}>${state.generating && state.generationKind === "recipe" && state.activeIdea === i ? `${spinner}<span>Skriver opskrift …</span>` : `Lav denne opskrift ${icon("arrow")}`}</button></article>`,
       )
       .join("") +
     '<p class="ideas-note">Forslagene er AI-genererede. Mængder og den endelige indkøbsliste kommer med den fulde opskrift.</p>';
