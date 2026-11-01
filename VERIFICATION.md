@@ -235,3 +235,14 @@ when an each-priced product cannot be matched, with an estimated label and edita
 quantity. Unknown weight quantities or price units remain missing from a subtotal.
 Prices beyond the indicated stock are marked uncertain. These calculations cannot
 verify model quantities, actual pack labels or stock at arrival.
+
+Published as `f46be81` via successful Pages run
+[41348607943](https://github.com/HuayuanSong/naermad/actions/runs/41348607943).
+A public browser check used actual Copenhagen inventory and a generated two-product
+recipe. The displayed 22 kr. matched one 16 kr. Camembert plus one 6 kr. rye bread;
+changing the Camembert quantity to two updated it to 38 kr. Both totals excluded
+extras, and uncertain pack quantities were marked estimated. The successful flow
+used one stock request and one model request; editing quantities used neither.
+No page errors or mobile dialog overflow were observed. An earlier single-cheese
+probe returned a normal model refusal, so a cheese-and-bread selection was used for
+the completed cost check. No model or inference-service changes were deployed.
