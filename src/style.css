@@ -1643,3 +1643,26 @@ dialog h3 {
 .store-pin span {
   background: #5f7547;
 }
+@media (max-width: 380px) {
+  .site-header {
+    gap: 8px;
+  }
+  .brand {
+    font-size: 24px;
+    gap: 7px;
+  }
+  .brand img {
+    width: 26px;
+    height: 26px;
+  }
+  .header-actions {
+    gap: 8px;
+  }
+  .header-actions .text-button {
+    font-size: 11px;
+  }
+  .status-badge {
+    font-size: 9px;
+    padding: 6px 7px;
+  }
+}

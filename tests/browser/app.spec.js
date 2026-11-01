@@ -93,7 +93,7 @@ test("manual classification updates recipes, and changing store resets selected 
 test("mobile has no horizontal overflow, working filters and accessible dialog", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 320, height: 844 });
   await page.goto("/");
   await expect(page.locator(".store-card")).toHaveCount(3);
   expect(
