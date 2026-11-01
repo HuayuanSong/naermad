@@ -516,7 +516,8 @@ $("#recipe-detail").addEventListener("click", async (e) => {
 
 async function boot() {
   try {
-    const response = await fetch("./config.json");
+    // Runtime connection settings can change independently of the bundled app.
+    const response = await fetch("./config.json", { cache: "no-store" });
     if (!response.ok)
       throw new Error("Konfigurationen kunne ikke indlæses. Genindlæs siden.");
     state.config = await response.json();
