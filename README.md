@@ -11,6 +11,13 @@ The Worker runs on a verified **Workers Free** account: generation stops when th
 shared daily allowance is exhausted. No paid fallback or visitor login is required.
 See [verification and model evaluation](VERIFICATION.md) for the checks and limits.
 
+The top-right **Dansk / English** selector translates the interface and selects the
+language for new AI ideas, recipes and shopping lists. The choice is stored only in
+this browser. Store/product labels remain as supplied by Salling; prices stay in DKK
+and times use Copenhagen time. Switching languages preserves the selected store,
+products and food preferences, clears previous results and cancels pending generation
+without automatically requesting stock or another model response.
+
 ## How it works
 
 1. Search for an address or place (landmarks work too), or use browser geolocation.
@@ -228,7 +235,7 @@ There is no analytics, app database, account requirement for visitors or saved a
 history. Photon receives an explicitly submitted search; Salling receives the chosen
 coordinates; OpenStreetMap serves visible map tiles. The generation Worker receives
 product names (up to 60 for suggestions, up to six for a recipe), pantry items, portions,
-time, diet preference and variant. Developing a suggestion also sends its title,
+time, diet preference, language and variant. Developing a suggestion also sends its title,
 description and expected extras.
 **Address, coordinates, store name, prices and the Salling key are not sent to the
 language model.** Hosting/inference providers still receive network metadata and may

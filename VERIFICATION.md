@@ -2,13 +2,13 @@
 
 ## Automated and visual checks
 
-- **26 API/data/generation tests passed.** Coverage includes active markdown filtering,
+- **28 API/data/generation tests passed.** Coverage includes active markdown filtering,
   coordinates, deduplication, Salling request coalescing/cache/errors, bounded generation
   requests, removal of location/credential fields, product and pantry references,
   requested servings/time, invalid model output, both inference adapters, CORS,
   request size limits, burst throttling, sanitized upstream errors, free-quota errors,
   opaque product labels and the narrow raw-meat-washing instruction check.
-- **13 Chromium browser tests passed.** No automatic product selection or generation;
+- **16 Chromium browser tests passed.** No automatic product selection or generation;
   an explicit click sends only selected products/preferences. Tests cover generated
   result provenance, extras, portions, another-idea requests, downloads, cancellation,
   stale response invalidation, missing endpoints, malformed results and provider errors,
@@ -183,3 +183,25 @@ no service responses were intercepted.
 
 These are time-specific integration observations, not guaranteed latency, stock or
 recipe quality. The manual route remains covered by the regression browser suite.
+
+## Danish / English selector
+
+The top-right selector, saved preference, translated dialogs/downloads and English
+AI request payloads are covered by browser tests. Switching languages preserves the
+selected store/products/settings without another Salling or inference request. A
+pending response cannot overwrite the new language. English also passes the tested
+320-pixel overflow and automated WCAG A/AA checks. Desktop and 390-pixel mobile
+screenshots were reviewed; original store/product names remain unchanged.
+
+Request validation accepts only `da`/`en`, defaulting to Danish for older clients.
+Both prompts specify the output language and retain metric units/Celsius and exact
+product/pantry references. Error responses are localized per request, including
+validation and rate/free-quota errors. The existing narrow meat-washing instruction
+check was extended to English; it is still not a general food-safety verifier.
+
+A small real Gemma 4 pilot used Danish labels for broccoli, carrots, cooking cream
+and canned chickpeas. It returned three English ideas (6.8 s), followed by the chosen
+**Creamy Broccoli and Carrot Soup** as a full English recipe (13.1 s), with translated
+ingredients, metric quantities and valid references. A Danish regression request
+returned Danish ideas (7.8 s). These are spot checks, not an accuracy benchmark or
+proof of cooking quality. Prompt versions: `naermad-generated-v5`, `naermad-ideas-v2`.

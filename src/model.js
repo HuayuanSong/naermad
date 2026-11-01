@@ -111,16 +111,17 @@ export function normalizeStores(raw, origin, radius, now = Date.now()) {
     .sort((a, b) => a.distance - b.distance);
 }
 
-export const formatMoney = (value) =>
-  new Intl.NumberFormat("da-DK", {
+export const formatMoney = (value, language = "da") =>
+  new Intl.NumberFormat(language === "en" ? "en-GB" : "da-DK", {
     style: "currency",
     currency: "DKK",
     maximumFractionDigits: 2,
   }).format(value);
-export function formatTime(value) {
+export function formatTime(value, language = "da") {
   const timestamp = typeof value === "number" ? value : Date.parse(value);
-  if (value == null || !Number.isFinite(timestamp)) return "ukendt";
-  return new Intl.DateTimeFormat("da-DK", {
+  if (value == null || !Number.isFinite(timestamp))
+    return language === "en" ? "unknown" : "ukendt";
+  return new Intl.DateTimeFormat(language === "en" ? "en-GB" : "da-DK", {
     timeZone: "Europe/Copenhagen",
     day: "numeric",
     month: "short",

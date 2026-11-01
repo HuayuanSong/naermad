@@ -7,7 +7,21 @@ import "./style.css";
 import L from "leaflet";
 import { createApi } from "./api.js";
 import { DEMO_ORIGIN, demoData } from "./demo.js";
-import { normalizeStores, formatMoney, formatTime } from "./model.js";
+import {
+  normalizeStores,
+  formatMoney as money,
+  formatTime as time,
+} from "./model.js";
+import {
+  t,
+  getLanguage,
+  getLocale,
+  setLanguage,
+  errorText,
+  bindStaticTranslations,
+} from "./i18n.js";
+const formatMoney = (value) => money(value, getLanguage());
+const formatTime = (value) => time(value, getLanguage());
 import {
   MAX_PRODUCTS,
   generationInput,
@@ -47,6 +61,7 @@ const icon = (id, cls = "") =>
 const spinner = '<span class="loading-spinner" aria-hidden="true"></span>';
 const brandName = { netto: "Netto", foetex: "føtex", bilka: "Bilka" };
 const state = {
+  language: getLanguage(),
   config: null,
   api: null,
   demo: true,
@@ -84,7 +99,7 @@ $("#app").innerHTML = `
   <header class="site-header wrap">
     <a href="./" class="brand" aria-label="Nærmad, forsiden"><img src="./icon.svg" alt="" width="36" height="36">nærmad<span class="brand-dot">.</span></a>
     <span class="header-caption">Gode råvarer. Nye muligheder.</span>
-    <div class="header-actions"><span id="mode-badge" class="status-badge">Indlæser</span><button class="text-button" id="about-button">Om Nærmad ${icon("arrow")}</button></div>
+    <div class="header-actions"><span id="mode-badge" class="status-badge">Indlæser</span><button class="text-button" id="about-button">Om Nærmad ${icon("arrow")}</button><label class="language-picker"><span class="sr-only">Sprog</span><select id="language" aria-label="Sprog"><option value="da" lang="da">Dansk</option><option value="en" lang="en">English</option></select></label></div>
   </header>
   <main class="wrap">
     <section class="hero compact-hero" aria-labelledby="hero-title"><div><div class="eyebrow">FRA BUTIKKENS DATOVARER TIL DIT KØKKEN</div><h1 id="hero-title">Hvad skal vi <em>spise?</em></h1><p>Gode fund i nærheden. Nye idéer til dit køkken.</p></div></section>
@@ -103,12 +118,16 @@ $("#app").innerHTML = `
   </main>
   <footer class="wrap site-footer"><span class="footer-brand">nærmad.</span><p>Et uafhængigt projekt. Data fra <a href="https://developer.sallinggroup.dev/apireference/food-waste" target="_blank" rel="noreferrer">Salling Group</a> · Kort og adresser © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a></p><a href="https://github.com/HuayuanSong/naermad" target="_blank" rel="noreferrer">GitHub ↗</a></footer>
   <dialog id="recipe-dialog" class="recipe-dialog" aria-labelledby="recipe-dialog-title"><button class="dialog-close" aria-label="Luk opskrift">${icon("close")}</button><div id="recipe-detail"></div></dialog>
-  <dialog id="about-dialog" class="about-dialog" aria-labelledby="about-title"><button class="dialog-close" aria-label="Luk information">${icon("close")}</button><div class="eyebrow">OM PROJEKTET</div><h2 id="about-title">Gør et godt fund<br>til et godt måltid.</h2><p>Nærmad lader en sprogmodel skrive en ny dansk opskrift med datovarer fra en butik. Vælg selv ingredienser, eller brug “Lad AI vælge” til at få op til tre retter foreslået fra butikkens udvalg. En fuld opskrift skrives først, når du vælger en ret. Der bruges ikke et fast opskriftskatalog.</p><h3>Hvilke tilbud?</h3><p>Sallings Anti Food Waste API viser varer sat ned på grund af kort holdbarhed i deltagende Netto, føtex og Bilka. Det er ikke de almindelige tilbudsaviser. Lagerstatus er vejledende, og varer kan være solgt, når du kommer frem.</p><h3>Opskrifter og ingredienser</h3><p>Tryk på “Lav en opskrift” for at sende de valgte varenavne, portionsantal, tidsramme og basisvarer til en sprogmodel. Vi kontrollerer svarformatet og at alle valgte varer er refereret. Det kontrollerer ikke smag eller tilberedningens korrekthed. AI-opskrifter er ikke køkkentestede. Tjek produktets ingredienser, allergener og holdbarhed på emballagen.</p><h3>Data og privatliv</h3><p>En adressesøgning sendes til Photons offentlige søgetjeneste. I live-tilstand sendes den valgte position til Salling. Kortvisninger hentes fra OpenStreetMap. Ved AI-forslag sendes op til 60 forskellige varenavne fra butikken; ved opskriftsgenerering sendes kun varerne til den valgte ret og dine madvalg til modeltjenesten, ikke din adresse eller position. Appen har ingen analyseværktøjer og gemmer ikke din adresse på en server; søgninger caches kun i hukommelsen, mens siden er åben.</p><p>Geokodning og kort er fælles tjenester uden garanteret oppetid. Salling dokumenterer aktuelt 100 madspildsforespørgsler pr. dag. Vi cacher søgninger i fem minutter og opdaterer kun ved dit valg.</p><div class="about-links"><a href="https://developer.sallinggroup.dev/apireference/food-waste" target="_blank" rel="noreferrer">Sallings API ↗</a><a href="https://github.com/HuayuanSong/naermad#connect-salling" target="_blank" rel="noreferrer">Tilslut live data ↗</a><a href="https://github.com/komoot/photon" target="_blank" rel="noreferrer">Photon ↗</a></div></dialog>
+  <dialog id="about-dialog" class="about-dialog" aria-labelledby="about-title"><button class="dialog-close" aria-label="Luk information">${icon("close")}</button><div class="eyebrow">OM PROJEKTET</div><h2 id="about-title">Gør et godt fund<br>til et godt måltid.</h2><p>Nærmad lader en sprogmodel skrive en ny dansk opskrift med datovarer fra en butik. Vælg selv ingredienser, eller brug “Lad AI vælge” til at få op til tre retter foreslået fra butikkens udvalg. En fuld opskrift skrives først, når du vælger en ret. Der bruges ikke et fast opskriftskatalog.</p><h3>Hvilke tilbud?</h3><p>Sallings Anti Food Waste API viser varer sat ned på grund af kort holdbarhed i deltagende Netto, føtex og Bilka. Det er ikke de almindelige tilbudsaviser. Lagerstatus er vejledende, og varer kan være solgt, når du kommer frem.</p><h3>Opskrifter og ingredienser</h3><p>Tryk på “Lav en opskrift” for at sende de valgte varenavne, portionsantal, tidsramme og basisvarer til en sprogmodel. Vi kontrollerer svarformatet og at alle valgte varer er refereret. Det kontrollerer ikke smag eller tilberedningens korrekthed. AI-opskrifter er ikke køkkentestede. Tjek produktets ingredienser, allergener og holdbarhed på emballagen.</p><h3>Data og privatliv</h3><p>En adressesøgning sendes til Photons offentlige søgetjeneste. I live-tilstand sendes den valgte position til Salling. Kortvisninger hentes fra OpenStreetMap. Ved AI-forslag sendes op til 60 forskellige varenavne fra butikken; ved opskriftsgenerering sendes kun varerne til den valgte ret og dine madvalg til modeltjenesten, ikke din adresse eller position. Appen har ingen analyseværktøjer og gemmer ikke din adresse på en server; søgninger caches kun i hukommelsen, mens siden er åben.</p><p>Geokodning og kort er fælles tjenester uden garanteret oppetid. Salling dokumenterer aktuelt 100 madspildsforespørgsler pr. dag. Vi cacher søgninger i fem minutter og opdaterer kun ved dit valg.</p><p>Dit sprogvalg gemmes kun i denne browser.</p><div class="about-links"><a href="https://developer.sallinggroup.dev/apireference/food-waste" target="_blank" rel="noreferrer">Sallings API ↗</a><a href="https://github.com/HuayuanSong/naermad#connect-salling" target="_blank" rel="noreferrer">Tilslut live data ↗</a><a href="https://github.com/komoot/photon" target="_blank" rel="noreferrer">Photon ↗</a></div></dialog>
 `;
+
+const localizeStatic = bindStaticTranslations(document.body);
+localizeStatic();
+$("#language").value = getLanguage();
 
 function message(text = "", error = false) {
   const el = $("#message");
-  el.textContent = text;
+  el.textContent = errorText(text);
   el.hidden = !text;
   el.classList.toggle("error", error);
 }
@@ -117,17 +136,24 @@ function busy(value) {
   $("#search-button").disabled = value;
   $("#locate").disabled = value;
   $("#search-button").innerHTML = value
-    ? "Søger …"
-    : `${icon("search")} Find butikker`;
+    ? t("Søger …")
+    : `${icon("search")} ${t("Find butikker")}`;
 }
 function initMap() {
   map = L.map("map", {
+    zoomControl: false,
     zoomSnap: 0.1,
     zoomDelta: 0.5,
     scrollWheelZoom: true,
     wheelPxPerZoomLevel: 120,
     attributionControl: true,
   }).setView([56.15, 10.205], 13.5);
+  L.control
+    .zoom({
+      zoomInTitle: getLanguage() === "en" ? "Zoom in" : "Zoom ind",
+      zoomOutTitle: getLanguage() === "en" ? "Zoom out" : "Zoom ud",
+    })
+    .addTo(map);
   L.tileLayer(state.config.tileUrl, {
     maxZoom: 19,
     attribution:
@@ -147,7 +173,7 @@ function updateMap(fit = false) {
       fillOpacity: 1,
     })
       .addTo(map)
-      .bindTooltip("Dit søgepunkt");
+      .bindTooltip(t("Dit søgepunkt"));
   state.stores.forEach((store, index) => {
     const marker = L.marker([store.lat, store.lon], {
       title: store.name,
@@ -177,20 +203,26 @@ function updateMap(fit = false) {
 function renderStores() {
   $("#store-count").textContent = state.stores.length;
   $("#origin-label").textContent =
-    state.origin?.label || "Søg efter et sted for at begynde.";
+    t(state.origin?.label || "") || t("Søg efter et sted for at begynde.");
   $("#stores").innerHTML = state.stores.length
     ? state.stores
         .map(
           (s, index) =>
-            `<button class="store-card ${state.store?.id === s.id ? "active" : ""}" data-store="${esc(s.id)}" aria-pressed="${state.store?.id === s.id}"><div class="store-top"><span class="brand-label ${esc(s.brand)}">${esc(brandName[s.brand])}${state.demo ? " · demo" : ""}</span><span>${s.distance < 1 ? `${Math.round(s.distance * 1000)} m` : `${s.distance.toLocaleString("da-DK", { maximumFractionDigits: 1 })} km`}</span></div><strong><span class="store-number">${index + 1}.</span> ${esc(s.name)}</strong><span class="store-address">${esc(s.address)}</span><span class="store-bottom">${s.offers.length} datovarer ${state.store?.id === s.id ? `${icon("check")} Valgt` : icon("arrow")}</span></button>`,
+            `<button class="store-card ${state.store?.id === s.id ? "active" : ""}" data-store="${esc(s.id)}" aria-pressed="${state.store?.id === s.id}"><div class="store-top"><span class="brand-label ${esc(s.brand)}">${esc(brandName[s.brand])}${state.demo ? " · demo" : ""}</span><span>${s.distance < 1 ? `${Math.round(s.distance * 1000)} m` : `${s.distance.toLocaleString(getLocale(), { maximumFractionDigits: 1 })} km`}</span></div><strong><span class="store-number">${index + 1}.</span> ${esc(s.name)}</strong><span class="store-address">${esc(s.address)}</span><span class="store-bottom">${s.offers.length} ${t("datovarer")} ${state.store?.id === s.id ? `${icon("check")} ${t("Valgt")}` : icon("arrow")}</span></button>`,
         )
         .join("")
-    : `<div class="empty small">${state.origin ? "Ingen butikker at vise her." : "Din næste gode råvare er måske lige om hjørnet."}</div>`;
+    : `<div class="empty small">${state.origin ? t("Ingen butikker at vise her.") : t("Din næste gode råvare er måske lige om hjørnet.")}</div>`;
   $("#coverage-note").textContent = state.demo
-    ? "Demobutikkerne er fiktive. De ligger kun i Aarhus; søgninger flytter dem ikke."
+    ? t(
+        "Demobutikkerne er fiktive. De ligger kun i Aarhus; søgninger flytter dem ikke.",
+      )
     : state.capped
-      ? "API’et returnerede 20 butikker. Der kan være flere i området; prøv en mindre radius."
-      : "Kun deltagende Netto, føtex og Bilka. Salling returnerer højst 20 butikker, så listen er ikke nødvendigvis komplet.";
+      ? t(
+          "API’et returnerede 20 butikker. Der kan være flere i området; prøv en mindre radius.",
+        )
+      : t(
+          "Kun deltagende Netto, føtex og Bilka. Salling returnerer højst 20 butikker, så listen er ikke nødvendigvis komplet.",
+        );
 }
 function selectStore(id) {
   state.store = state.stores.find((s) => s.id === id) || null;
@@ -224,12 +256,12 @@ function renderOffers() {
   const s = state.store;
   if (!s) {
     $("#offers").innerHTML =
-      `<div class="empty start-state"><h2 id="offers-title">Vælg dine varer</h2><p>Vælg først en butik i listen.</p>${state.demo ? '<button class="primary-button" data-reset>Prøv Aarhus-demoen</button>' : ""}</div>`;
+      `<div class="empty start-state"><h2 id="offers-title">${t("Vælg dine varer")}</h2><p>${t("Vælg først en butik i listen.")}</p>${state.demo ? `<button class="primary-button" data-reset>${t("Prøv Aarhus-demoen")}</button>` : ""}</div>`;
     return;
   }
   const offers = state.expanded ? s.offers : s.offers.slice(0, 9);
   $("#offers").innerHTML =
-    `<div class="offer-header"><div><div class="eyebrow">${state.demo ? "DEMO · " : ""}${esc(s.name)}</div><h2 id="offers-title">Vælg dine varer</h2><p>Vælg 1–6 varer, du vil bruge sammen. Du bestemmer.</p></div>${!state.demo ? '<button id="refresh" class="text-button">Hent igen ↻</button>' : ""}</div><div class="selection-heading"><span><strong>${state.selected.size}</strong> varer valgt · ${s.offers.length} datovarer i butikken</span>${state.selected.size ? '<button id="clear-selection" class="text-button">Ryd valg</button>' : ""}</div><div class="offer-grid">${offers.map((o) => `<article class="offer-card ${state.selected.has(o.id) ? "selected" : ""}"><button class="offer-toggle" data-offer="${esc(o.id)}" aria-pressed="${state.selected.has(o.id)}" aria-label="${state.selected.has(o.id) ? "Fravælg" : "Vælg"} ${esc(o.name)}"><div class="offer-card-top"><span class="discount">−${o.discount}%</span><span class="selection-icon">${icon(state.selected.has(o.id) ? "check" : "plus")}</span></div><h3>${esc(o.name)}</h3><div class="prices"><strong>${formatMoney(o.price)}</strong><s>${formatMoney(o.originalPrice)}</s></div><div class="unit-note">${o.unit === "kg" ? "Pr. kg" : o.unit === "each" ? "Pr. salgsenhed" : "Prisenhed ikke oplyst"}</div></button><details class="offer-meta"><summary>Pris og gyldighed</summary><p>Tilbud til ${formatTime(o.endsAt)}. ${o.stock === null ? "Lager ukendt." : `Vejledende lager: ${o.stock} ${o.unit === "kg" ? "kg" : o.unit === "each" ? "stk." : "enheder"}.`} ${state.demo ? "Eksempeldata." : `Hentet ${formatTime(state.fetchedAt)}.`}</p></details></article>`).join("")}</div>${s.offers.length > 9 ? `<button class="show-more" id="show-more">${state.expanded ? "Vis færre varer" : `Se alle ${s.offers.length} varer`} ↓</button>` : ""}${!s.offers.length ? '<div class="empty">Ingen aktive datovarer i svaret. Prøv en anden butik.</div>' : ""}<p class="stock-note">Varer kan være udsolgt ved ankomst. Priserne gælder varerne, ikke hele opskriften.</p>`;
+    `<div class="offer-header"><div><div class="eyebrow">${state.demo ? "DEMO · " : ""}${esc(s.name)}</div><h2 id="offers-title">${t("Vælg dine varer")}</h2><p>${t("Vælg 1–6 varer, du vil bruge sammen. Du bestemmer.")}</p></div>${!state.demo ? `<button id="refresh" class="text-button">${t("Hent igen ↻")}</button>` : ""}</div><div class="selection-heading"><span><strong>${state.selected.size}</strong> ${t("varer valgt ·")} ${s.offers.length} ${t("datovarer i butikken")}</span>${state.selected.size ? `<button id="clear-selection" class="text-button">${t("Ryd valg")}</button>` : ""}</div><div class="offer-grid">${offers.map((o) => `<article class="offer-card ${state.selected.has(o.id) ? "selected" : ""}"><button class="offer-toggle" data-offer="${esc(o.id)}" aria-pressed="${state.selected.has(o.id)}" aria-label="${state.selected.has(o.id) ? t("Fravælg") : t("Vælg")} ${esc(o.name)}"><div class="offer-card-top"><span class="discount">−${o.discount}%</span><span class="selection-icon">${icon(state.selected.has(o.id) ? "check" : "plus")}</span></div><h3>${esc(o.name)}</h3><div class="prices"><strong>${formatMoney(o.price)}</strong><s>${formatMoney(o.originalPrice)}</s></div><div class="unit-note">${o.unit === "kg" ? t("Pr. kg") : o.unit === "each" ? t("Pr. salgsenhed") : t("Prisenhed ikke oplyst")}</div></button><details class="offer-meta"><summary>${t("Pris og gyldighed")}</summary><p>${t("Tilbud til")} ${formatTime(o.endsAt)}. ${o.stock === null ? t("Lager ukendt.") : `${t("Vejledende lager:")} ${o.stock} ${o.unit === "kg" ? "kg" : o.unit === "each" ? t("stk.") : t("enheder")}.`} ${state.demo ? t("Eksempeldata.") : `${t("Hentet")} ${formatTime(state.fetchedAt)}.`}</p></details></article>`).join("")}</div>${s.offers.length > 9 ? `<button class="show-more" id="show-more">${state.expanded ? t("Vis færre varer") : t("Se alle {count} varer", { count: s.offers.length })} ↓</button>` : ""}${!s.offers.length ? `<div class="empty">${t("Ingen aktive datovarer i svaret. Prøv en anden butik.")}</div>` : ""}<p class="stock-note">${t("Varer kan være udsolgt ved ankomst. Priserne gælder varerne, ikke hele opskriften.")}</p>`;
 }
 function renderRecipes() {
   const inspire = state.mode === "inspire";
@@ -240,37 +272,43 @@ function renderRecipes() {
   $("#offers").hidden = inspire;
   $("#recipes").classList.toggle("inspiration-mode", inspire);
   $("#recipes-title").textContent = inspire
-    ? "Lad os finde på noget godt."
-    : "3. Lav en opskrift";
+    ? t("Lad os finde på noget godt.")
+    : t("3. Lav en opskrift");
   $(".generation-intro").textContent = inspire
-    ? "AI vælger råvarerne og foreslår op til tre retter. Du vælger det, du har lyst til."
-    : "En ny opskrift lavet med netop de varer, du vælger.";
+    ? t(
+        "AI vælger råvarerne og foreslår op til tre retter. Du vælger det, du har lyst til.",
+      )
+    : t("En ny opskrift lavet med netop de varer, du vælger.");
   $("#selected-products").innerHTML = inspire
-    ? `<div class="inspiration-source"><span class="selection-caption">${state.store ? esc(state.store.name) : "FIND EN BUTIK FØRST"}</span><p>${!state.store ? "Vælg en butik for at få forslag fra dens datovarer." : candidates.offers.length ? `Forslagene tager udgangspunkt i ${candidates.offers.length}${candidates.total > candidates.offers.length ? ` af ${candidates.total}` : ""} forskellige datovarer. ${candidates.total > candidates.offers.length ? "Nye forslag tager et andet udvalg med." : "Du behøver ikke vælge ingredienser først."}` : "Ingen varer med tydelige navne at foreslå retter fra. Prøv en anden butik."}</p></div>`
+    ? `<div class="inspiration-source"><span class="selection-caption">${state.store ? esc(state.store.name) : t("FIND EN BUTIK FØRST")}</span><p>${!state.store ? t("Vælg en butik for at få forslag fra dens datovarer.") : candidates.offers.length ? `${t("Forslagene tager udgangspunkt i")} ${candidates.offers.length}${candidates.total > candidates.offers.length ? ` ${t("af")} ${candidates.total}` : ""} ${t("forskellige datovarer.")} ${candidates.total > candidates.offers.length ? t("Nye forslag tager et andet udvalg med.") : t("Du behøver ikke vælge ingredienser først.")}` : t("Ingen varer med tydelige navne at foreslå retter fra. Prøv en anden butik.")}</p></div>`
     : offers.length
-      ? `<span class="selection-caption">OPSKRIFTEN SKAL BRUGE</span><div class="product-chips">${offers.map((o) => `<span>${esc(o.name)}</span>`).join("")}</div>`
-      : '<p class="muted">Vælg varer ovenfor. Der laves først en opskrift, når du trykker på knappen.</p>';
+      ? `<span class="selection-caption">${t("OPSKRIFTEN SKAL BRUGE")}</span><div class="product-chips">${offers.map((o) => `<span>${esc(o.name)}</span>`).join("")}</div>`
+      : `<p class="muted">${t("Vælg varer ovenfor. Der laves først en opskrift, når du trykker på knappen.")}</p>`;
   $("#generate").disabled =
     !(inspire ? candidates.offers.length : offers.length) ||
     state.generating ||
     !state.config?.recipeEndpoint ||
     (inspire && state.variant >= 20);
   $("#generate").innerHTML = state.generating
-    ? `${spinner}<span>${state.generationKind === "ideas" ? "Finder på retter …" : "Skriver din opskrift …"}</span>`
-    : `${inspire ? (state.ideas ? "Få nye forslag" : "Foreslå retter") : "Lav en opskrift"} ${icon("arrow")}`;
+    ? `${spinner}<span>${state.generationKind === "ideas" ? t("Finder på retter …") : t("Skriver din opskrift …")}</span>`
+    : `${inspire ? (state.ideas ? t("Få nye forslag") : t("Foreslå retter")) : t("Lav en opskrift")} ${icon("arrow")}`;
   $("#generate").setAttribute("aria-busy", String(state.generating));
   $("#cancel-generation").hidden = !state.generating;
   $("#generation-status").classList.toggle("is-loading", state.generating);
   $("#generation-status").textContent = state.generating
     ? state.generationKind === "ideas"
-      ? "AI finder råvarer, der passer sammen, og skriver forslag til dig."
-      : "Modellen skriver mængder og fremgangsmåde til din ret."
-    : state.generationMessage ||
+      ? t("AI finder råvarer, der passer sammen, og skriver forslag til dig.")
+      : t("Modellen skriver mængder og fremgangsmåde til din ret.")
+    : errorText(state.generationMessage) ||
       (!state.config?.recipeEndpoint
-        ? "Modellen er endnu ikke tilsluttet i denne forhåndsvisning."
+        ? t("Modellen er endnu ikke tilsluttet i denne forhåndsvisning.")
         : inspire
-          ? "Forslag laves, når du trykker. Vælg derefter en ret for at få hele opskriften."
-          : "AI-genereret på bestilling. Ekstra ingredienser bliver vist tydeligt.");
+          ? t(
+              "Forslag laves, når du trykker. Vælg derefter en ret for at få hele opskriften.",
+            )
+          : t(
+              "AI-genereret på bestilling. Ekstra ingredienser bliver vist tydeligt.",
+            ));
   renderIdeas();
   const r = state.generatedRecipe;
   if (!r) {
@@ -279,14 +317,14 @@ function renderRecipes() {
   }
   if (r.status === "cannot_create") {
     $("#recipe-list").innerHTML =
-      `<div class="empty"><h3>Prøv et andet udvalg</h3><p>${esc(r.reason)}</p></div>`;
+      `<div class="empty"><h3>${t("Prøv et andet udvalg")}</h3><p>${esc(r.reason)}</p></div>`;
     return;
   }
   const extras = r.ingredients.filter(
     (i) => i.productId === null && i.pantryItem === null,
   );
   $("#recipe-list").innerHTML =
-    `<article class="recipe-card generated-card"><div class="recipe-card-top"><span class="match-badge">Ny AI-opskrift · ${r.servings} ${r.servings === 1 ? "person" : "personer"}</span><span class="recipe-time">${icon("clock")}${r.minutes} min.</span></div><h3>${esc(r.title)}</h3><p>${esc(r.description)}</p><div class="recipe-provenance"><strong>${inspire ? "Bruger disse datovarer" : "Bruger dine valgte varer"}</strong><p>${state.recipeContext.products.map((p) => esc(p.name)).join(" · ")}</p></div><div class="recipe-extras"><strong>${extras.length ? "Køb også" : "Ingen ekstra indkøb"}</strong><p>${extras.length ? extras.map((i) => esc(i.name)).join(", ") : "Resten er på din liste over basisvarer."}</p></div><div class="recipe-card-bottom"><button data-recipe="generated" class="recipe-link">Se opskrift og indkøbsliste ${icon("arrow")}</button>${!inspire ? `<button id="another-recipe" class="text-button" ${state.variant >= 20 ? "disabled" : ""}>Lav en anden idé</button>` : ""}</div></article>`;
+    `<article class="recipe-card generated-card"><div class="recipe-card-top"><span class="match-badge">${t("Ny AI-opskrift")} · ${r.servings} ${r.servings === 1 ? t("person") : t("personer")}</span><span class="recipe-time">${icon("clock")}${r.minutes} min.</span></div><h3>${esc(r.title)}</h3><p>${esc(r.description)}</p><div class="recipe-provenance"><strong>${inspire ? t("Bruger disse datovarer") : t("Bruger dine valgte varer")}</strong><p>${state.recipeContext.products.map((p) => esc(p.name)).join(" · ")}</p></div><div class="recipe-extras"><strong>${extras.length ? t("Køb også") : t("Ingen ekstra indkøb")}</strong><p>${extras.length ? extras.map((i) => esc(i.name)).join(", ") : t("Resten er på din liste over basisvarer.")}</p></div><div class="recipe-card-bottom"><button data-recipe="generated" class="recipe-link">${t("Se opskrift og indkøbsliste")} ${icon("arrow")}</button>${!inspire ? `<button id="another-recipe" class="text-button" ${state.variant >= 20 ? "disabled" : ""}>${t("Lav en anden idé")}</button>` : ""}</div></article>`;
 }
 function renderIdeas() {
   const result = state.ideas;
@@ -297,7 +335,7 @@ function renderIdeas() {
   }
   if (result.status === "cannot_create") {
     $("#ideas-list").innerHTML =
-      `<div class="empty"><h3>Prøv en anden butik eller andre madvalg</h3><p>${esc(result.reason)}</p></div>`;
+      `<div class="empty"><h3>${t("Prøv en anden butik eller andre madvalg")}</h3><p>${esc(result.reason)}</p></div>`;
     return;
   }
   const names = new Map(
@@ -307,10 +345,10 @@ function renderIdeas() {
     result.ideas
       .map(
         (idea, i) =>
-          `<article class="idea-card"><div class="idea-top"><span class="idea-number">IDÉ 0${i + 1}</span><span class="recipe-time">${icon("clock")}ca. ${idea.minutes} min.</span></div><h3>${esc(idea.title)}</h3><p class="idea-description">${esc(idea.description)}</p><div class="idea-products"><strong>Fra butikkens datovarer</strong><ul>${idea.productIds.map((id) => `<li>${esc(names.get(id))}</li>`).join("")}</ul></div><p class="idea-extras"><strong>${idea.extraIngredients.length ? "Køb også" : "Resten fra dit køkken"}</strong><br>${idea.extraIngredients.length ? idea.extraIngredients.map(esc).join(", ") : "Bruger dine angivne basisvarer."}</p><button class="secondary-button" data-idea="${i}" aria-busy="${state.generating && state.generationKind === "recipe" && state.activeIdea === i}" ${state.generating ? "disabled" : ""}>${state.generating && state.generationKind === "recipe" && state.activeIdea === i ? `${spinner}<span>Skriver opskrift …</span>` : `Lav denne opskrift ${icon("arrow")}`}</button></article>`,
+          `<article class="idea-card"><div class="idea-top"><span class="idea-number">${t("IDÉ")} 0${i + 1}</span><span class="recipe-time">${icon("clock")}${t("ca.")} ${idea.minutes} min.</span></div><h3>${esc(idea.title)}</h3><p class="idea-description">${esc(idea.description)}</p><div class="idea-products"><strong>${t("Fra butikkens datovarer")}</strong><ul>${idea.productIds.map((id) => `<li>${esc(names.get(id))}</li>`).join("")}</ul></div><p class="idea-extras"><strong>${idea.extraIngredients.length ? t("Køb også") : t("Resten fra dit køkken")}</strong><br>${idea.extraIngredients.length ? idea.extraIngredients.map(esc).join(", ") : t("Bruger dine angivne basisvarer.")}</p><button class="secondary-button" data-idea="${i}" aria-busy="${state.generating && state.generationKind === "recipe" && state.activeIdea === i}" ${state.generating ? "disabled" : ""}>${state.generating && state.generationKind === "recipe" && state.activeIdea === i ? `${spinner}<span>${t("Skriver opskrift …")}</span>` : `${t("Lav denne opskrift")} ${icon("arrow")}`}</button></article>`,
       )
       .join("") +
-    '<p class="ideas-note">Forslagene er AI-genererede. Mængder og den endelige indkøbsliste kommer med den fulde opskrift.</p>';
+    `<p class="ideas-note">${t("Forslagene er AI-genererede. Mængder og den endelige indkøbsliste kommer med den fulde opskrift.")}</p>`;
 }
 async function generateSuggestions() {
   if (state.generating) return;
@@ -350,7 +388,7 @@ async function generateSuggestions() {
   } catch (e) {
     if (id === state.generationId)
       state.generationMessage =
-        e.name === "AbortError" ? "Genereringen er annulleret." : e.message;
+        e.name === "AbortError" ? t("Genereringen er annulleret.") : e.message;
   } finally {
     if (id === state.generationId) {
       state.generating = false;
@@ -410,14 +448,14 @@ async function generate(ideaIndex) {
       ...input,
       offers: snapshot,
       storeName: state.store.name,
-      model: data.model || "Sprogmodel",
+      model: data.model || t("Sprogmodel"),
       provider: data.provider || "",
       generatedAt: data.generatedAt || new Date().toISOString(),
     };
   } catch (e) {
     if (id === state.generationId)
       state.generationMessage =
-        e.name === "AbortError" ? "Genereringen er annulleret." : e.message;
+        e.name === "AbortError" ? t("Genereringen er annulleret.") : e.message;
   } finally {
     if (id === state.generationId) {
       state.generating = false;
@@ -428,7 +466,7 @@ async function generate(ideaIndex) {
 }
 function shoppingText(r) {
   const c = state.recipeContext;
-  return `${r.title} — ${r.servings} ${r.servings === 1 ? "person" : "personer"}\nAI-genereret opskrift\nButik: ${c.storeName}\n\n${r.ingredients.map((i) => `${i.quantity} ${i.name} [${i.productId ? "valgt datovare" : i.pantryItem ? "har hjemme" : "køb også"}]`).join("\n")}\n\n${r.steps.map((s, i) => `${i + 1}. ${s}`).join("\n\n")}\n\nAI-opskriften er ikke køkkentestet. Tjek mængder, tilberedning, allergener og holdbarhed.\nNærmad · https://huayuansong.github.io/naermad/`;
+  return `${r.title} — ${r.servings} ${r.servings === 1 ? t("person") : t("personer")}\n${t("AI-genereret opskrift")}\n${t("Butik:")} ${c.storeName}\n\n${r.ingredients.map((i) => `${i.quantity} ${i.name} [${i.productId ? t("valgt datovare") : i.pantryItem ? t("har hjemme") : t("køb også")}]`).join("\n")}\n\n${r.steps.map((s, i) => `${i + 1}. ${s}`).join("\n\n")}\n\n${t("AI-opskriften er ikke køkkentestet. Tjek mængder, tilberedning, allergener og holdbarhed.")}\nNærmad · https://huayuansong.github.io/naermad/`;
 }
 function showRecipe() {
   const r = state.generatedRecipe,
@@ -438,21 +476,21 @@ function showRecipe() {
   const offerById = new Map(c.products.map((p, i) => [p.id, c.offers[i]]));
   const group = (title, items) =>
     items.length
-      ? `<h4>${title}</h4><ul>${items.map((i) => `<li><label><input type="checkbox"><span><strong>${esc(i.quantity)}</strong> ${esc(i.name)}</span></label>${i.productId ? `<small class="detail-product">${esc(offerById.get(i.productId).name)} · ${formatMoney(offerById.get(i.productId).price)} ${offerById.get(i.productId).unit === "kg" ? "pr. kg" : "pr. salgsenhed"}</small>` : ""}</li>`).join("")}</ul>`
+      ? `<h4>${title}</h4><ul>${items.map((i) => `<li><label><input type="checkbox"><span><strong>${esc(i.quantity)}</strong> ${esc(i.name)}</span></label>${i.productId ? `<small class="detail-product">${esc(offerById.get(i.productId).name)} · ${formatMoney(offerById.get(i.productId).price)} ${offerById.get(i.productId).unit === "kg" ? t("pr. kg") : t("pr. salgsenhed")}</small>` : ""}</li>`).join("")}</ul>`
       : "";
   $("#recipe-detail").innerHTML =
-    `<div class="eyebrow">AI-GENERERET · ${r.minutes} MINUTTER · ${r.servings} ${r.servings === 1 ? "PERSON" : "PERSONER"}</div><h2 id="recipe-dialog-title">${esc(r.title)}</h2><p class="recipe-intro">${esc(r.description)}</p><div class="recipe-detail-layout"><div class="shopping-list"><h3>Din indkøbsliste</h3>${group(
-      "Valgte datovarer",
+    `<div class="eyebrow">${t("AI-GENERERET")} · ${r.minutes} ${t("MINUTTER")} · ${r.servings} ${r.servings === 1 ? t("PERSON") : t("PERSONER")}</div><h2 id="recipe-dialog-title">${esc(r.title)}</h2><p class="recipe-intro">${esc(r.description)}</p><div class="recipe-detail-layout"><div class="shopping-list"><h3>${t("Din indkøbsliste")}</h3>${group(
+      t("Valgte datovarer"),
       r.ingredients.filter((i) => i.productId !== null),
     )}${group(
-      "Køb også",
+      t("Køb også"),
       r.ingredients.filter(
         (i) => i.productId === null && i.pantryItem === null,
       ),
     )}${group(
-      "Fra dit køkken",
+      t("Fra dit køkken"),
       r.ingredients.filter((i) => i.pantryItem !== null),
-    )}<p class="list-note">Tjek pakkestørrelser. Mængderne er til ${r.servings} personer; én nedsat pakke dækker ikke nødvendigvis behovet.</p></div><div class="method"><h3>Sådan gør du</h3><ol>${r.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol><p class="recipe-caution">AI-opskriften er ikke køkkentestet. Tjek tilberedning, allergener og varernes holdbarhed.</p></div></div><div class="dialog-actions"><button id="copy-list" class="primary-button">Kopiér indkøbsliste</button><button id="download-list" class="secondary-button">Gem som tekst</button><button id="print-recipe" class="text-button">Udskriv</button><span id="copy-status" role="status"></span></div><p class="generation-credit">Lavet ${formatTime(c.generatedAt)} · ${esc(c.model)}</p>`;
+    )}<p class="list-note">${t("Tjek pakkestørrelser. Mængderne er til {count} personer; én nedsat pakke dækker ikke nødvendigvis behovet.", { count: r.servings })}</p></div><div class="method"><h3>${t("Sådan gør du")}</h3><ol>${r.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol><p class="recipe-caution">${t("AI-opskriften er ikke køkkentestet. Tjek tilberedning, allergener og varernes holdbarhed.")}</p></div></div><div class="dialog-actions"><button id="copy-list" class="primary-button">${t("Kopiér indkøbsliste")}</button><button id="download-list" class="secondary-button">${t("Gem som tekst")}</button><button id="print-recipe" class="text-button">${t("Udskriv")}</button><span id="copy-status" role="status"></span></div><p class="generation-credit">${t("Lavet")} ${formatTime(c.generatedAt)} · ${esc(c.model)}</p>`;
   $("#recipe-dialog").showModal();
 }
 
@@ -468,7 +506,7 @@ async function loadStores(origin) {
   renderRecipes();
   updateMap(true);
   busy(true);
-  message("Finder butikker …");
+  message(t("Finder butikker …"));
   try {
     if (state.demo) {
       state.stores = normalizeStores(demoData(), origin, state.radius);
@@ -488,8 +526,12 @@ async function loadStores(origin) {
       state.stores.length
         ? ""
         : state.demo
-          ? "Der er ingen demobutikker tæt på dette sted. Prøv Aarhus-demoen. Live butikker kræver en Salling-tilslutning."
-          : "Salling returnerede ingen deltagende butikker i området. Prøv en større radius eller et andet sted.",
+          ? t(
+              "Der er ingen demobutikker tæt på dette sted. Prøv Aarhus-demoen. Live butikker kræver en Salling-tilslutning.",
+            )
+          : t(
+              "Salling returnerede ingen deltagende butikker i området. Prøv en større radius eller et andet sted.",
+            ),
     );
   } catch (e) {
     if (request === state.fetchId) message(e.message, true);
@@ -504,31 +546,70 @@ function resetDemo() {
   $("#radius").value = "3";
   $("#address").value = "";
   $("#addresses").hidden = true;
-  $("#mode-badge").textContent = "Demo · eksempeldata";
+  $("#mode-badge").textContent = t("Demo · eksempeldata");
   $("#mode-badge").classList.remove("live");
   $("#demo-notice").hidden = false;
   loadStores({ ...DEMO_ORIGIN });
 }
+$("#language").addEventListener("change", (event) => {
+  const hadResult = state.generating || state.generatedRecipe || state.ideas;
+  state.extraPantry = $("#extra-pantry").value;
+  setLanguage(event.target.value);
+  state.language = getLanguage();
+  invalidateGeneration();
+  localizeStatic();
+  $("#mode-badge").textContent = t(
+    state.config
+      ? state.demo
+        ? "Demo · eksempeldata"
+        : "Salling · tilsluttet"
+      : "Indlæser",
+  );
+  if (hadResult)
+    state.generationMessage = t(
+      "Sproget er ændret. Lav nye forslag eller en opskrift på det valgte sprog.",
+    );
+  message();
+  busy(state.busy);
+  renderStores();
+  renderOffers();
+  renderRecipes();
+  const heading = $("#addresses > p");
+  if (heading) heading.textContent = t("Vælg det rigtige sted");
+  if (map) {
+    const zoomIn = document.querySelector(".leaflet-control-zoom-in"),
+      zoomOut = document.querySelector(".leaflet-control-zoom-out");
+    if (zoomIn) {
+      zoomIn.title = getLanguage() === "en" ? "Zoom in" : "Zoom ind";
+      zoomIn.setAttribute("aria-label", zoomIn.title);
+    }
+    if (zoomOut) {
+      zoomOut.title = getLanguage() === "en" ? "Zoom out" : "Zoom ud";
+      zoomOut.setAttribute("aria-label", zoomOut.title);
+    }
+    updateMap();
+  }
+});
 $("#search-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const id = ++state.searchId;
   $("#addresses").hidden = true;
   busy(true);
-  message("Søger efter adressen …");
+  message(t("Søger efter adressen …"));
   try {
     const addresses = await state.api.search($("#address").value);
     if (id !== state.searchId) return;
     if (!addresses.length) {
       message(
-        "Ingen adresser fundet. Prøv gadenavn og by, eller et kendt sted.",
+        t("Ingen adresser fundet. Prøv gadenavn og by, eller et kendt sted."),
       );
       return;
     }
     $("#addresses").innerHTML =
-      `<p>Vælg det rigtige sted</p>${addresses.map((p, i) => `<button type="button" data-address="${i}">${icon("pin")}<span>${esc(p.label)}</span>${icon("arrow")}</button>`).join("")}`;
+      `<p>${t("Vælg det rigtige sted")}</p>${addresses.map((p, i) => `<button type="button" data-address="${i}">${icon("pin")}<span>${esc(p.label)}</span>${icon("arrow")}</button>`).join("")}`;
     $("#addresses").hidden = false;
     $("#addresses")._places = addresses;
-    message("Vælg en adresse nedenfor.");
+    message(t("Vælg en adresse nedenfor."));
   } catch (e) {
     if (id === state.searchId) message(e.message, true);
   } finally {
@@ -551,7 +632,9 @@ $("#radius").addEventListener("change", () => {
 $("#locate").addEventListener("click", () => {
   if (!navigator.geolocation) {
     message(
-      "Denne browser understøtter ikke positionsdeling. Skriv en adresse i stedet.",
+      t(
+        "Denne browser understøtter ikke positionsdeling. Skriv en adresse i stedet.",
+      ),
       true,
     );
     return;
@@ -559,7 +642,7 @@ $("#locate").addEventListener("click", () => {
   const id = ++state.searchId;
   $("#addresses").hidden = true;
   busy(true);
-  message("Venter på din position …");
+  message(t("Venter på din position …"));
   navigator.geolocation.getCurrentPosition(
     (p) => {
       if (id !== state.searchId) return;
@@ -573,7 +656,7 @@ $("#locate").addEventListener("click", () => {
       if (id !== state.searchId) return;
       busy(false);
       message(
-        "Positionen kunne ikke hentes. Du kan skrive din adresse i stedet.",
+        t("Positionen kunne ikke hentes. Du kan skrive din adresse i stedet."),
         true,
       );
     },
@@ -594,7 +677,9 @@ $("#offers").addEventListener("click", (e) => {
     if (state.selected.has(id)) state.selected.delete(id);
     else if (state.selected.size < MAX_PRODUCTS) state.selected.add(id);
     else {
-      message(`Vælg højst ${MAX_PRODUCTS} varer til én opskrift.`);
+      message(
+        t("Vælg højst {count} varer til én opskrift.", { count: MAX_PRODUCTS }),
+      );
       return;
     }
     invalidateGeneration();
@@ -642,7 +727,7 @@ $("#ideas-list").addEventListener("click", (e) => {
 $("#generate").addEventListener("click", () => generate());
 $("#cancel-generation").addEventListener("click", () => {
   invalidateGeneration();
-  state.generationMessage = "Genereringen er annulleret.";
+  state.generationMessage = t("Genereringen er annulleret.");
   renderRecipes();
 });
 $("#recipe-list").addEventListener("click", (e) => {
@@ -685,10 +770,11 @@ $("#recipe-detail").addEventListener("click", async (e) => {
   if (b.id === "copy-list") {
     try {
       await navigator.clipboard.writeText(shoppingText(dialogRecipe));
-      $("#copy-status").textContent = "Kopieret!";
+      $("#copy-status").textContent = t("Kopieret!");
     } catch {
-      $("#copy-status").textContent =
-        "Kopiering blev blokeret. Brug “Gem som tekst”.";
+      $("#copy-status").textContent = t(
+        "Kopiering blev blokeret. Brug “Gem som tekst”.",
+      );
     }
   }
   if (b.id === "download-list") {
@@ -699,7 +785,8 @@ $("#recipe-detail").addEventListener("click", async (e) => {
     );
     const a = document.createElement("a");
     a.href = url;
-    a.download = "naermad-opskrift.txt";
+    a.download =
+      getLanguage() === "en" ? "naermad-recipe.txt" : "naermad-opskrift.txt";
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -711,14 +798,16 @@ async function boot() {
     // Runtime connection settings can change independently of the bundled app.
     const response = await fetch("./config.json", { cache: "no-store" });
     if (!response.ok)
-      throw new Error("Konfigurationen kunne ikke indlæses. Genindlæs siden.");
+      throw new Error(
+        t("Konfigurationen kunne ikke indlæses. Genindlæs siden."),
+      );
     state.config = await response.json();
     state.api = createApi(state.config);
     state.demo = !state.config.sallingFrontendKey;
     initMap();
     if (state.demo) resetDemo();
     else {
-      $("#mode-badge").textContent = "Salling · tilsluttet";
+      $("#mode-badge").textContent = t("Salling · tilsluttet");
       $("#mode-badge").classList.add("live");
       renderStores();
       renderOffers();
@@ -726,7 +815,7 @@ async function boot() {
     }
   } catch (e) {
     message(e.message, true);
-    $("#mode-badge").textContent = "Ikke tilsluttet";
+    $("#mode-badge").textContent = t("Ikke tilsluttet");
     $("#search-button").disabled = true;
     $("#locate").disabled = true;
   }
@@ -749,7 +838,7 @@ setInterval(() => {
     renderOffers();
     renderRecipes();
     if ($("#recipe-dialog").open) $("#recipe-dialog").close();
-    message("Udløbne tilbud er fjernet. Vælg eventuelt en anden vare.");
+    message(t("Udløbne tilbud er fjernet. Vælg eventuelt en anden vare."));
   }
 }, 60000);
 boot();

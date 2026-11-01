@@ -106,6 +106,19 @@ button .icon {
   gap: 26px;
   margin-left: auto;
 }
+.language-picker select {
+  min-height: 44px;
+  min-width: 104px;
+  padding: 8px 28px 8px 12px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  background-color: #fff8f3;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
 .status-badge {
   background: #fbe8df;
   color: #783928;
@@ -2076,5 +2089,36 @@ dialog h3 {
   }
   .generation-intro {
     font-size: 15px;
+  }
+}
+
+/* Keep the language control in the top right, including on narrow phones. */
+@media (max-width: 760px) {
+  .site-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px 12px;
+    height: auto;
+    padding-block: 14px;
+  }
+  .site-header .brand {
+    grid-area: 1 / 1;
+  }
+  .header-actions {
+    display: contents;
+  }
+  .language-picker {
+    grid-area: 1 / 2;
+    justify-self: end;
+  }
+  .header-actions .status-badge {
+    grid-area: 2 / 1;
+    justify-self: start;
+    font-size: 12px;
+  }
+  .header-actions #about-button {
+    grid-area: 2 / 2;
+    justify-self: end;
+    font-size: 14px;
   }
 }

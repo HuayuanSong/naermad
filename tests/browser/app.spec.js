@@ -309,6 +309,16 @@ test("configured live flow consumes one nearby request, filters expired offers a
   await expect(page.locator(".selection-heading")).toContainText(
     "0 varer valgt · 7 datovarer",
   );
+  await page.locator("#language").selectOption("en");
+  await expect(page.locator(".selection-heading")).toContainText(
+    "0 selected · 7 markdowns",
+  );
+  await expect(page.locator('[data-store="demo-1"]')).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.locator("#language").selectOption("da");
+  expect(calls).toBe(1);
   await page.locator('[data-store="demo-2"]').click();
   await page.locator("#refresh").click();
   await expect(page.locator(".store-card")).toHaveCount(3);
@@ -552,4 +562,185 @@ test("inspiration and new theme pass accessibility checks and fit narrow screens
     (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze())
       .violations,
   ).toEqual([]);
+});
+
+const generatedEnglish = (input) => ({
+  ...generated(input),
+  title: input.idea?.title || "Broccoli pasta",
+  description: "An English fixture for the selected products.",
+  ingredients: [
+    ...input.products.map((p) => ({
+      name: "broccoli",
+      quantity: "200 g",
+      productId: p.id,
+      pantryItem: null,
+    })),
+    { name: "pasta", quantity: "150 g", productId: null, pantryItem: null },
+    { name: "oil", quantity: "1 tbsp", productId: null, pantryItem: "oil" },
+  ],
+  steps: [
+    "Prepare the broccoli.",
+    "Cook the pasta as directed on the packet.",
+    "Cook the broccoli in oil and serve with pasta.",
+  ],
+});
+
+test("language switch preserves selections and preferences, translates dialogs and downloads, and persists", async ({
+  page,
+}) => {
+  const requests = [],
+    errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await connectFixture(page, (r, input) => {
+    requests.push(input);
+    return r.fulfill({ json: generatedEnglish(input) });
+  });
+  await page.goto("/");
+  await selectBroccoli(page);
+  await page.locator("#servings").selectOption("4");
+  await page.locator("#vegetarian").check();
+  await page.locator(".pantry-details").evaluate((el) => (el.open = true));
+  await page.locator("#extra-pantry").fill("hvidløg");
+  await page
+    .getByRole("combobox", { name: "Sprog", exact: true })
+    .selectOption("en");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(
+    page.getByRole("combobox", { name: "Language", exact: true }),
+  ).toHaveValue("en");
+  await expect(page.locator("#hero-title")).toHaveText("What shall we eat?");
+  await expect(page.locator('[data-store="demo-1"]')).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(
+    page.getByRole("button", {
+      name: "Deselect Broccoli · 1 stk.",
+      exact: true,
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#servings")).toHaveValue("4");
+  await expect(page.locator("#vegetarian")).toBeChecked();
+  await expect(page.locator("#extra-pantry")).toHaveValue("hvidløg");
+  await expect(page.locator(".offer-card.selected .prices")).toContainText(
+    "DKK",
+  );
+  expect(requests).toHaveLength(0);
+  await page.getByRole("button", { name: "About Nærmad" }).click();
+  await expect(page.locator("#about-dialog")).toContainText(
+    "Your language preference is saved only in this browser.",
+  );
+  await page.getByRole("button", { name: "Close information" }).click();
+  await page.locator("#generate").click();
+  await expect(page.locator(".recipe-card")).toHaveCount(1);
+  expect(requests[0].language).toBe("en");
+  expect(requests[0].pantry).toEqual([
+    "oil",
+    "salt",
+    "black pepper",
+    "water",
+    "hvidløg",
+  ]);
+  await page.locator("[data-recipe]").click();
+  await expect(page.locator(".shopping-list")).toContainText(
+    "From your pantry",
+  );
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Save as text" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("naermad-recipe.txt");
+  const stream = await download.createReadStream(),
+    chunks = [];
+  for await (const chunk of stream) chunks.push(chunk);
+  expect(Buffer.concat(chunks).toString()).toContain(
+    "AI-generated recipe\nStore:",
+  );
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await expect(page.locator("#language")).toHaveValue("en");
+  await expect(page.locator("#hero-title")).toHaveText("What shall we eat?");
+  await page.locator("#language").selectOption("da");
+  await expect(page.locator("#hero-title")).toHaveText("Hvad skal vi spise?");
+  expect(errors).toEqual([]);
+});
+
+test("English inspiration requests English recipes and remains accessible on a narrow phone", async ({
+  page,
+}) => {
+  const requests = [];
+  await connectFixture(page, (r, input) => {
+    requests.push(input);
+    return r.fulfill({ json: generatedEnglish(input) });
+  });
+  await page.route(ideasUrl, (r) => {
+    const input = r.request().postDataJSON();
+    requests.push(input);
+    return r.fulfill({
+      json: {
+        status: "ok",
+        ideas: [
+          {
+            title: "Broccoli pasta",
+            description: "A simple vegetable pasta.",
+            minutes: 20,
+            productIds: [input.products[0].id],
+            extraIngredients: ["pasta"],
+          },
+        ],
+      },
+    });
+  });
+  await page.goto("/");
+  await expect(page.locator(".store-card")).toHaveCount(3);
+  await page.locator("#language").selectOption("en");
+  await page.getByRole("radio", { name: /Let AI choose/ }).check();
+  await page.getByRole("button", { name: "Suggest meals" }).click();
+  await expect(page.locator(".idea-card")).toHaveCount(1);
+  expect(requests[0].language).toBe("en");
+  await page.locator("[data-idea]").click();
+  await expect(page.locator("#recipe-dialog")).toBeVisible();
+  expect(requests[1].language).toBe("en");
+  expect(requests[1].idea.title).toBe("Broccoli pasta");
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 320, height: 800 });
+  const language = await page.locator("#language").boundingBox();
+  const brand = await page.locator(".brand").boundingBox();
+  expect(language.x).toBeGreaterThan(brand.x + brand.width);
+  expect(Math.abs(language.y - brand.y)).toBeLessThan(15);
+  expect(language.x + language.width).toBeLessThanOrEqual(320);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  expect(
+    (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze())
+      .violations,
+  ).toEqual([]);
+});
+
+test("switching languages cancels pending generation without another AI request and ignores the stale reply", async ({
+  page,
+}) => {
+  let release,
+    calls = 0;
+  await connectFixture(page, async (r, input) => {
+    calls++;
+    await new Promise((resolve) => (release = resolve));
+    await r.fulfill({ json: generated(input) }).catch(() => {});
+  });
+  await page.goto("/");
+  await selectBroccoli(page);
+  await page.locator("#generate").click();
+  await expect.poll(() => Boolean(release)).toBe(true);
+  await expect(page.locator("#generate .loading-spinner")).toBeVisible();
+  await page.locator("#language").selectOption("en");
+  release();
+  await expect(page.locator("#generate")).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator("#generation-status")).toContainText(
+    "Language changed",
+  );
+  await expect(page.locator(".recipe-card")).toHaveCount(0);
+  await expect(page.locator(".offer-card.selected")).toHaveCount(1);
+  expect(calls).toBe(1);
 });

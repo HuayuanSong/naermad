@@ -12,10 +12,16 @@ export function generationInput(offers, selected, settings) {
   );
   if (!products.length || products.length > MAX_PRODUCTS)
     throw new Error(`Vælg 1–${MAX_PRODUCTS} varer, du vil bruge sammen.`);
-  const pantry = settings.pantry ? ["olie", "salt", "sort peber", "vand"] : [];
+  const language = settings.language || "da";
+  const pantry = settings.pantry
+    ? language === "en"
+      ? ["oil", "salt", "black pepper", "water"]
+      : ["olie", "salt", "sort peber", "vand"]
+    : [];
   for (const entry of (settings.extraPantry || "").split(/[,\n]/))
     if (entry.trim()) pantry.push(entry.trim());
   return validateRequest({
+    language,
     products: products.map((p, i) => ({ id: `p${i + 1}`, name: p.name })),
     pantry: [...new Set(pantry)],
     servings: settings.servings,
@@ -121,7 +127,10 @@ export async function requestRecipe(endpoint, input, signal) {
   try {
     response = await fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Accept-Language": input.language || "da",
+      },
       body: JSON.stringify(input),
       signal,
     });

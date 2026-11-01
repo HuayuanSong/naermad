@@ -11,6 +11,8 @@ import {
   validateIdeasRequest,
 } from "./contract.js";
 
+import { translateError } from "../shared/translations.js";
+
 import { ideasSchema, buildIdeasMessages, validateIdeas } from "./ideas.js";
 
 async function readJson(request, maxBody = 12000) {
@@ -152,6 +154,7 @@ async function generate(input, env, fetcher, kind) {
       : validateRecipe(output, input);
   return {
     ...recipe,
+    language: input.language || "da",
     model,
     provider,
     generatedAt: new Date().toISOString(),
@@ -169,6 +172,11 @@ async function generate(input, env, fetcher, kind) {
 
 export default {
   async fetch(request, env) {
+    let language = /^en(?:-|,|;|$)/i.test(
+      request.headers.get("Accept-Language") || "",
+    )
+      ? "en"
+      : "da";
     const origin = request.headers.get("Origin");
     const allowed = (env.ALLOWED_ORIGINS || "https://huayuansong.github.io")
       .split(",")
@@ -182,7 +190,12 @@ export default {
     if (origin && allowed.includes(origin))
       headers["Access-Control-Allow-Origin"] = origin;
     const json = (data, status = 200) =>
-      Response.json(data, { status, headers });
+      Response.json(
+        data.error
+          ? { ...data, error: translateError(data.error, language) }
+          : data,
+        { status, headers },
+      );
     const path = new URL(request.url).pathname;
     if (path === "/health" && request.method === "GET")
       return json({
@@ -202,29 +215,32 @@ export default {
         headers: {
           ...headers,
           "Access-Control-Allow-Methods": "POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type",
+          "Access-Control-Allow-Headers": "Content-Type, Accept-Language",
           "Access-Control-Max-Age": "600",
         },
       });
     if (request.method !== "POST") return json({ error: "Brug POST." }, 405);
     try {
       const isIdeas = path === "/ideas";
-      const input = isIdeas
-        ? validateIdeasRequest(await readJson(request, 64000))
-        : validateRequest(await readJson(request));
+      const raw = await readJson(request, isIdeas ? 64000 : 12000);
+      if (raw?.language === "en" || raw?.language === "da")
+        language = raw.language;
+      const input = isIdeas ? validateIdeasRequest(raw) : validateRequest(raw);
       // These are approximate per-location burst limits, not a global budget.
       // Workers Free's provider quota is the hard, non-billable daily ceiling.
       if (env.RATE_LIMITER) {
         const ip = request.headers.get("CF-Connecting-IP") || "local";
         const result = await env.RATE_LIMITER.limit({ key: `recipe:${ip}` });
-        if (!result.success)
-          return new Response(
-            JSON.stringify({
+        if (!result.success) {
+          headers["Retry-After"] = "60";
+          return json(
+            {
               error:
                 "Du har lavet flere opskrifter på kort tid. Prøv igen om et minut.",
-            }),
-            { status: 429, headers: { ...headers, "Retry-After": "60" } },
+            },
+            429,
           );
+        }
       }
       const result = await (isIdeas ? generateIdeas : generateRecipe)(
         input,

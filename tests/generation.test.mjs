@@ -5,6 +5,7 @@ import worker, { generateRecipe } from "../generation/worker.js";
 import { generationInput } from "../src/generation.js";
 
 const input = () => ({
+  language: "da",
   products: [{ id: "p1", name: "Broccoli · 1 stk." }],
   servings: 2,
   maxMinutes: 30,
@@ -276,6 +277,8 @@ test("rejects instructions to wash meat while allowing washing vegetables and ex
   for (const step of [
     "Skyl kyllingebrystfileterne under koldt vand.",
     "Vask det rå kød og dup det tørt.",
+    "Rinse the raw chicken under cold water.",
+    "Wash your turkey and pat dry.",
   ]) {
     assert.throws(() =>
       validateRecipe(
@@ -289,6 +292,10 @@ test("rejects instructions to wash meat while allowing washing vegetables and ex
     "Du må ikke skylle kyllingebrystet.",
     "Skyl peberfrugterne og skær kyllingen i tern.",
     "Vask hænder efter håndtering af kylling.",
+    "Do not rinse the chicken.",
+    "Never wash raw poultry.",
+    "Wash peppers and dice the chicken.",
+    "Wash your hands after handling chicken.",
   ]) {
     assert.equal(
       validateRecipe({ ...recipe(), steps: [step, ...recipe().steps] }, input())
