@@ -2,14 +2,22 @@ import "@fontsource/dm-sans/latin-400.css";
 import "@fontsource/dm-sans/latin-500.css";
 import "@fontsource/dm-sans/latin-600.css";
 import "@fontsource/dm-sans/latin-700.css";
-import "@fontsource/fraunces/latin-500.css";
 import "leaflet/dist/leaflet.css";
 import "./style.css";
 import L from "leaflet";
 import { createApi } from "./api.js";
 import { DEMO_ORIGIN, demoData } from "./demo.js";
 import { normalizeStores, formatMoney, formatTime } from "./model.js";
-import { MAX_PRODUCTS, generationInput, requestRecipe } from "./generation.js";
+import {
+  MAX_PRODUCTS,
+  generationInput,
+  requestRecipe,
+  ideaCandidates,
+  ideasInput,
+  recipeFromIdea,
+  ideasEndpoint,
+} from "./generation.js";
+import { validateIdeas } from "../generation/ideas.js";
 import { validateRecipe } from "../generation/contract.js";
 
 const $ = (selector) => document.querySelector(selector);
@@ -45,6 +53,11 @@ const state = {
   stores: [],
   store: null,
   selected: new Set(),
+  mode: "manual",
+  ideas: null,
+  ideasContext: null,
+  activeIdea: null,
+  generationKind: "recipe",
   radius: 3,
   vegetarian: false,
   maxMinutes: 30,
@@ -73,7 +86,7 @@ $("#app").innerHTML = `
     <div class="header-actions"><span id="mode-badge" class="status-badge">Indlæser</span><button class="text-button" id="about-button">Om Nærmad ${icon("arrow")}</button></div>
   </header>
   <main class="wrap">
-    <section class="hero compact-hero" aria-labelledby="hero-title"><div><div class="eyebrow">FRA BUTIKKENS DATOVARER TIL DIT KØKKEN</div><h1 id="hero-title">Dine varer. <em>En ny opskrift.</em></h1><p>Vælg en butik og nogle varer. Lad AI finde på aftensmaden.</p></div></section>
+    <section class="hero compact-hero" aria-labelledby="hero-title"><div><div class="eyebrow">FRA BUTIKKENS DATOVARER TIL DIT KØKKEN</div><h1 id="hero-title">Hvad skal vi <em>spise?</em></h1><p>Gode fund i nærheden. Nye idéer til dit køkken.</p></div></section>
     <div id="demo-notice" class="demo-notice" hidden><span><strong>Du ser en demo.</strong> Butikker, varer og priser er fiktive eksempler i Aarhus. Live data kræver tilslutning til Salling.</span><button class="text-button" id="demo-reset">Prøv Aarhus-demoen ${icon("arrow")}</button></div>
     <section class="search-section" aria-label="Find butikker nær dig">
       <form id="search-form" class="search-form"><label class="address-field">${icon("pin")}<span class="sr-only">Adresse, by eller sted i Danmark</span><input id="address" type="search" placeholder="Din adresse, by eller et sted …" autocomplete="off" minlength="3" maxlength="160" required></label><label class="radius-field"><span>Inden for</span><select id="radius" aria-label="Søgeradius"><option value="1">1 km</option><option value="3" selected>3 km</option><option value="5">5 km</option><option value="10">10 km</option></select></label><button class="primary-button" id="search-button" type="submit">${icon("search")} Find butikker</button><button class="location-button" type="button" id="locate" aria-label="Brug min position" title="Brug min position">${icon("locate")}</button></form>
@@ -83,13 +96,13 @@ $("#app").innerHTML = `
     <p id="message" class="message" role="status" aria-live="polite" hidden></p>
     <div class="workspace">
       <aside class="sidebar" aria-label="Butikker og kort"><div class="section-title"><h2>1. Vælg butik</h2><span id="store-count" class="count-badge">0</span></div><p id="origin-label" class="muted location-label">Søg efter et sted for at begynde.</p><details id="map-disclosure" class="map-disclosure"><summary>Vis butikkerne på kortet</summary><div id="map" role="region" aria-label="Kort over butikker i nærheden"></div><div class="distance-note">Afstande er i fugleflugtslinje.</div></details><div id="stores" class="store-list"></div><p id="coverage-note" class="coverage-note">Kun deltagende Netto, føtex og Bilka. En søgning kan vise højst 20 butikker.</p></aside>
-      <div class="main-panel"><section id="offers" aria-labelledby="offers-title"></section><section id="recipes" aria-labelledby="recipes-title"><div class="recipe-heading"><div><h2 id="recipes-title">3. Lav en opskrift</h2><p class="generation-intro">En ny opskrift lavet med netop de varer, du vælger.</p></div></div><div id="selected-products" class="selected-products"></div><div class="filters"><label><span class="sr-only">Antal personer</span><select id="servings"><option value="1">1 person</option><option value="2" selected>2 personer</option><option value="4">4 personer</option><option value="6">6 personer</option></select></label><label><span class="sr-only">Maksimal tilberedningstid</span><select id="max-minutes"><option value="20">Højst 20 min.</option><option value="30" selected>Højst 30 min.</option><option value="45">Højst 45 min.</option><option value="60">Højst 60 min.</option></select></label><label class="check-label"><input id="vegetarian" type="checkbox">Vegetarisk</label></div><details class="pantry-details"><summary>Det har jeg hjemme</summary><label class="pantry check-label"><input type="checkbox" id="pantry" checked> Olie, salt, sort peber og vand</label><label class="extra-pantry-label" for="extra-pantry">Andre basisvarer (valgfrit)</label><input id="extra-pantry" maxlength="400" placeholder="Fx ris, hvidløg, citron"><p>Adskil med komma. Alt andet står som ekstra indkøb.</p></details><div class="generate-actions"><button id="generate" class="primary-button" disabled>Lav en opskrift ${icon("arrow")}</button><button id="cancel-generation" class="text-button" hidden>Annullér</button></div><p id="generation-status" class="generation-status" role="status" aria-live="polite"></p><div id="recipe-list" class="recipe-list generated-list"></div></section></div>
+      <div class="main-panel"><fieldset class="mode-picker"><legend>2. Find din næste ret</legend><div class="mode-options"><label><input type="radio" name="recipe-mode" value="manual" checked><span><strong>Jeg vælger varerne</strong><small>Lav en opskrift med dine egne fund</small></span></label><label><input type="radio" name="recipe-mode" value="inspire"><span><strong>Lad AI vælge</strong><small>Få retter foreslået fra butikkens udvalg</small></span></label></div></fieldset><section id="offers" aria-labelledby="offers-title"></section><section id="recipes" aria-labelledby="recipes-title"><div class="recipe-heading"><div><h2 id="recipes-title">3. Lav en opskrift</h2><p class="generation-intro">En ny opskrift lavet med netop de varer, du vælger.</p></div></div><div id="selected-products" class="selected-products"></div><div class="filters"><label><span class="sr-only">Antal personer</span><select id="servings"><option value="1">1 person</option><option value="2" selected>2 personer</option><option value="4">4 personer</option><option value="6">6 personer</option></select></label><label><span class="sr-only">Maksimal tilberedningstid</span><select id="max-minutes"><option value="20">Højst 20 min.</option><option value="30" selected>Højst 30 min.</option><option value="45">Højst 45 min.</option><option value="60">Højst 60 min.</option></select></label><label class="check-label"><input id="vegetarian" type="checkbox">Vegetarisk</label></div><details class="pantry-details"><summary>Det har jeg hjemme</summary><label class="pantry check-label"><input type="checkbox" id="pantry" checked> Olie, salt, sort peber og vand</label><label class="extra-pantry-label" for="extra-pantry">Andre basisvarer (valgfrit)</label><input id="extra-pantry" maxlength="400" placeholder="Fx ris, hvidløg, citron"><p>Adskil med komma. Alt andet står som ekstra indkøb.</p></details><div class="generate-actions"><button id="generate" class="primary-button" disabled>Lav en opskrift ${icon("arrow")}</button><button id="cancel-generation" class="text-button" hidden>Annullér</button></div><p id="generation-status" class="generation-status" role="status" aria-live="polite"></p><div id="ideas-list" class="ideas-list" aria-label="Forslag fra butikkens varer"></div><div id="recipe-list" class="recipe-list generated-list"></div></section></div>
     </div>
     <section class="closing-note"><span class="little-leaf">${icon("leaf")}</span><div><h2>En god idé begynder med det, der er.</h2><p>Opskrifterne tager udgangspunkt i dine valgte varer. Resten står på indkøbslisten, så du ved præcis, hvad der mangler.</p></div></section>
   </main>
   <footer class="wrap site-footer"><span class="footer-brand">nærmad.</span><p>Et uafhængigt projekt. Data fra <a href="https://developer.sallinggroup.dev/apireference/food-waste" target="_blank" rel="noreferrer">Salling Group</a> · Kort og adresser © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a></p><a href="https://github.com/HuayuanSong/naermad" target="_blank" rel="noreferrer">GitHub ↗</a></footer>
   <dialog id="recipe-dialog" class="recipe-dialog" aria-labelledby="recipe-dialog-title"><button class="dialog-close" aria-label="Luk opskrift">${icon("close")}</button><div id="recipe-detail"></div></dialog>
-  <dialog id="about-dialog" class="about-dialog" aria-labelledby="about-title"><button class="dialog-close" aria-label="Luk information">${icon("close")}</button><div class="eyebrow">OM PROJEKTET</div><h2 id="about-title">Gør et godt fund<br>til et godt måltid.</h2><p>Nærmad lader en sprogmodel skrive en ny dansk opskrift med de varer, du selv vælger fra en butik. Ingen varer vælges automatisk, og der bruges ikke et fast opskriftskatalog.</p><h3>Hvilke tilbud?</h3><p>Sallings Anti Food Waste API viser varer sat ned på grund af kort holdbarhed i deltagende Netto, føtex og Bilka. Det er ikke de almindelige tilbudsaviser. Lagerstatus er vejledende, og varer kan være solgt, når du kommer frem.</p><h3>Opskrifter og ingredienser</h3><p>Tryk på “Lav en opskrift” for at sende de valgte varenavne, portionsantal, tidsramme og basisvarer til en sprogmodel. Vi kontrollerer svarformatet og at alle valgte varer er refereret. Det kontrollerer ikke smag eller tilberedningens korrekthed. AI-opskrifter er ikke køkkentestede. Tjek produktets ingredienser, allergener og holdbarhed på emballagen.</p><h3>Data og privatliv</h3><p>En adressesøgning sendes til Photons offentlige søgetjeneste. I live-tilstand sendes den valgte position til Salling. Kortvisninger hentes fra OpenStreetMap. Ved opskriftsgenerering sendes kun de valgte varenavne og dine madvalg til modeltjenesten, ikke din adresse eller position. Appen har ingen analyseværktøjer og gemmer ikke din adresse på en server; søgninger caches kun i hukommelsen, mens siden er åben.</p><p>Geokodning og kort er fælles tjenester uden garanteret oppetid. Salling dokumenterer aktuelt 100 madspildsforespørgsler pr. dag. Vi cacher søgninger i fem minutter og opdaterer kun ved dit valg.</p><div class="about-links"><a href="https://developer.sallinggroup.dev/apireference/food-waste" target="_blank" rel="noreferrer">Sallings API ↗</a><a href="https://github.com/HuayuanSong/naermad#connect-salling" target="_blank" rel="noreferrer">Tilslut live data ↗</a><a href="https://github.com/komoot/photon" target="_blank" rel="noreferrer">Photon ↗</a></div></dialog>
+  <dialog id="about-dialog" class="about-dialog" aria-labelledby="about-title"><button class="dialog-close" aria-label="Luk information">${icon("close")}</button><div class="eyebrow">OM PROJEKTET</div><h2 id="about-title">Gør et godt fund<br>til et godt måltid.</h2><p>Nærmad lader en sprogmodel skrive en ny dansk opskrift med datovarer fra en butik. Vælg selv ingredienser, eller brug “Lad AI vælge” til at få op til tre retter foreslået fra butikkens udvalg. En fuld opskrift skrives først, når du vælger en ret. Der bruges ikke et fast opskriftskatalog.</p><h3>Hvilke tilbud?</h3><p>Sallings Anti Food Waste API viser varer sat ned på grund af kort holdbarhed i deltagende Netto, føtex og Bilka. Det er ikke de almindelige tilbudsaviser. Lagerstatus er vejledende, og varer kan være solgt, når du kommer frem.</p><h3>Opskrifter og ingredienser</h3><p>Tryk på “Lav en opskrift” for at sende de valgte varenavne, portionsantal, tidsramme og basisvarer til en sprogmodel. Vi kontrollerer svarformatet og at alle valgte varer er refereret. Det kontrollerer ikke smag eller tilberedningens korrekthed. AI-opskrifter er ikke køkkentestede. Tjek produktets ingredienser, allergener og holdbarhed på emballagen.</p><h3>Data og privatliv</h3><p>En adressesøgning sendes til Photons offentlige søgetjeneste. I live-tilstand sendes den valgte position til Salling. Kortvisninger hentes fra OpenStreetMap. Ved AI-forslag sendes op til 60 forskellige varenavne fra butikken; ved opskriftsgenerering sendes kun varerne til den valgte ret og dine madvalg til modeltjenesten, ikke din adresse eller position. Appen har ingen analyseværktøjer og gemmer ikke din adresse på en server; søgninger caches kun i hukommelsen, mens siden er åben.</p><p>Geokodning og kort er fælles tjenester uden garanteret oppetid. Salling dokumenterer aktuelt 100 madspildsforespørgsler pr. dag. Vi cacher søgninger i fem minutter og opdaterer kun ved dit valg.</p><div class="about-links"><a href="https://developer.sallinggroup.dev/apireference/food-waste" target="_blank" rel="noreferrer">Sallings API ↗</a><a href="https://github.com/HuayuanSong/naermad#connect-salling" target="_blank" rel="noreferrer">Tilslut live data ↗</a><a href="https://github.com/komoot/photon" target="_blank" rel="noreferrer">Photon ↗</a></div></dialog>
 `;
 
 function message(text = "", error = false) {
@@ -194,6 +207,9 @@ function invalidateGeneration() {
   state.generating = false;
   state.generatedRecipe = null;
   state.recipeContext = null;
+  state.ideas = null;
+  state.ideasContext = null;
+  state.activeIdea = null;
   state.generationMessage = "";
   state.variant = 0;
   if ($("#recipe-dialog").open) $("#recipe-dialog").close();
@@ -207,30 +223,54 @@ function renderOffers() {
   const s = state.store;
   if (!s) {
     $("#offers").innerHTML =
-      `<div class="empty start-state"><h2 id="offers-title">2. Vælg dine varer</h2><p>Vælg først en butik i listen.</p>${state.demo ? '<button class="primary-button" data-reset>Prøv Aarhus-demoen</button>' : ""}</div>`;
+      `<div class="empty start-state"><h2 id="offers-title">Vælg dine varer</h2><p>Vælg først en butik i listen.</p>${state.demo ? '<button class="primary-button" data-reset>Prøv Aarhus-demoen</button>' : ""}</div>`;
     return;
   }
   const offers = state.expanded ? s.offers : s.offers.slice(0, 9);
   $("#offers").innerHTML =
-    `<div class="offer-header"><div><div class="eyebrow">${state.demo ? "DEMO · " : ""}${esc(s.name)}</div><h2 id="offers-title">2. Vælg dine varer</h2><p>Vælg 1–6 varer, du vil bruge sammen. Du bestemmer.</p></div>${!state.demo ? '<button id="refresh" class="text-button">Hent igen ↻</button>' : ""}</div><div class="selection-heading"><span><strong>${state.selected.size}</strong> varer valgt · ${s.offers.length} datovarer i butikken</span>${state.selected.size ? '<button id="clear-selection" class="text-button">Ryd valg</button>' : ""}</div><div class="offer-grid">${offers.map((o) => `<article class="offer-card ${state.selected.has(o.id) ? "selected" : ""}"><button class="offer-toggle" data-offer="${esc(o.id)}" aria-pressed="${state.selected.has(o.id)}" aria-label="${state.selected.has(o.id) ? "Fravælg" : "Vælg"} ${esc(o.name)}"><div class="offer-card-top"><span class="discount">−${o.discount}%</span><span class="selection-icon">${icon(state.selected.has(o.id) ? "check" : "plus")}</span></div><h3>${esc(o.name)}</h3><div class="prices"><strong>${formatMoney(o.price)}</strong><s>${formatMoney(o.originalPrice)}</s></div><div class="unit-note">${o.unit === "kg" ? "Pr. kg" : o.unit === "each" ? "Pr. salgsenhed" : "Prisenhed ikke oplyst"}</div></button><details class="offer-meta"><summary>Pris og gyldighed</summary><p>Tilbud til ${formatTime(o.endsAt)}. ${o.stock === null ? "Lager ukendt." : `Vejledende lager: ${o.stock} ${o.unit === "kg" ? "kg" : o.unit === "each" ? "stk." : "enheder"}.`} ${state.demo ? "Eksempeldata." : `Hentet ${formatTime(state.fetchedAt)}.`}</p></details></article>`).join("")}</div>${s.offers.length > 9 ? `<button class="show-more" id="show-more">${state.expanded ? "Vis færre varer" : `Se alle ${s.offers.length} varer`} ↓</button>` : ""}${!s.offers.length ? '<div class="empty">Ingen aktive datovarer i svaret. Prøv en anden butik.</div>' : ""}<p class="stock-note">Varer kan være udsolgt ved ankomst. Priserne gælder varerne, ikke hele opskriften.</p>`;
+    `<div class="offer-header"><div><div class="eyebrow">${state.demo ? "DEMO · " : ""}${esc(s.name)}</div><h2 id="offers-title">Vælg dine varer</h2><p>Vælg 1–6 varer, du vil bruge sammen. Du bestemmer.</p></div>${!state.demo ? '<button id="refresh" class="text-button">Hent igen ↻</button>' : ""}</div><div class="selection-heading"><span><strong>${state.selected.size}</strong> varer valgt · ${s.offers.length} datovarer i butikken</span>${state.selected.size ? '<button id="clear-selection" class="text-button">Ryd valg</button>' : ""}</div><div class="offer-grid">${offers.map((o) => `<article class="offer-card ${state.selected.has(o.id) ? "selected" : ""}"><button class="offer-toggle" data-offer="${esc(o.id)}" aria-pressed="${state.selected.has(o.id)}" aria-label="${state.selected.has(o.id) ? "Fravælg" : "Vælg"} ${esc(o.name)}"><div class="offer-card-top"><span class="discount">−${o.discount}%</span><span class="selection-icon">${icon(state.selected.has(o.id) ? "check" : "plus")}</span></div><h3>${esc(o.name)}</h3><div class="prices"><strong>${formatMoney(o.price)}</strong><s>${formatMoney(o.originalPrice)}</s></div><div class="unit-note">${o.unit === "kg" ? "Pr. kg" : o.unit === "each" ? "Pr. salgsenhed" : "Prisenhed ikke oplyst"}</div></button><details class="offer-meta"><summary>Pris og gyldighed</summary><p>Tilbud til ${formatTime(o.endsAt)}. ${o.stock === null ? "Lager ukendt." : `Vejledende lager: ${o.stock} ${o.unit === "kg" ? "kg" : o.unit === "each" ? "stk." : "enheder"}.`} ${state.demo ? "Eksempeldata." : `Hentet ${formatTime(state.fetchedAt)}.`}</p></details></article>`).join("")}</div>${s.offers.length > 9 ? `<button class="show-more" id="show-more">${state.expanded ? "Vis færre varer" : `Se alle ${s.offers.length} varer`} ↓</button>` : ""}${!s.offers.length ? '<div class="empty">Ingen aktive datovarer i svaret. Prøv en anden butik.</div>' : ""}<p class="stock-note">Varer kan være udsolgt ved ankomst. Priserne gælder varerne, ikke hele opskriften.</p>`;
 }
 function renderRecipes() {
+  const inspire = state.mode === "inspire";
   const offers = selectedOffers();
-  $("#selected-products").innerHTML = offers.length
-    ? `<span class="selection-caption">OPSKRIFTEN SKAL BRUGE</span><div class="product-chips">${offers.map((o) => `<span>${esc(o.name)}</span>`).join("")}</div>`
-    : '<p class="muted">Vælg varer ovenfor. Der laves først en opskrift, når du trykker på knappen.</p>';
+  const candidates = inspire
+    ? ideaCandidates(state.store?.offers || [], state.variant)
+    : null;
+  $("#offers").hidden = inspire;
+  $("#recipes").classList.toggle("inspiration-mode", inspire);
+  $("#recipes-title").textContent = inspire
+    ? "Lad os finde på noget godt."
+    : "3. Lav en opskrift";
+  $(".generation-intro").textContent = inspire
+    ? "AI vælger råvarerne og foreslår op til tre retter. Du vælger det, du har lyst til."
+    : "En ny opskrift lavet med netop de varer, du vælger.";
+  $("#selected-products").innerHTML = inspire
+    ? `<div class="inspiration-source"><span class="selection-caption">${state.store ? esc(state.store.name) : "FIND EN BUTIK FØRST"}</span><p>${!state.store ? "Vælg en butik for at få forslag fra dens datovarer." : candidates.offers.length ? `Forslagene tager udgangspunkt i ${candidates.offers.length}${candidates.total > candidates.offers.length ? ` af ${candidates.total}` : ""} forskellige datovarer. ${candidates.total > candidates.offers.length ? "Nye forslag tager et andet udvalg med." : "Du behøver ikke vælge ingredienser først."}` : "Ingen varer med tydelige navne at foreslå retter fra. Prøv en anden butik."}</p></div>`
+    : offers.length
+      ? `<span class="selection-caption">OPSKRIFTEN SKAL BRUGE</span><div class="product-chips">${offers.map((o) => `<span>${esc(o.name)}</span>`).join("")}</div>`
+      : '<p class="muted">Vælg varer ovenfor. Der laves først en opskrift, når du trykker på knappen.</p>';
   $("#generate").disabled =
-    !offers.length || state.generating || !state.config?.recipeEndpoint;
+    !(inspire ? candidates.offers.length : offers.length) ||
+    state.generating ||
+    !state.config?.recipeEndpoint ||
+    (inspire && state.variant >= 20);
   $("#generate").innerHTML = state.generating
-    ? "Skriver din opskrift …"
-    : `Lav en opskrift ${icon("arrow")}`;
+    ? state.generationKind === "ideas"
+      ? "Finder på retter …"
+      : "Skriver din opskrift …"
+    : `${inspire ? (state.ideas ? "Få nye forslag" : "Foreslå retter") : "Lav en opskrift"} ${icon("arrow")}`;
   $("#cancel-generation").hidden = !state.generating;
   $("#generation-status").textContent = state.generating
-    ? "Modellen finder på en ret med dine valgte varer."
+    ? state.generationKind === "ideas"
+      ? "AI finder råvarer, der passer sammen, og skriver forslag til dig."
+      : "Modellen skriver mængder og fremgangsmåde til din ret."
     : state.generationMessage ||
       (!state.config?.recipeEndpoint
         ? "Modellen er endnu ikke tilsluttet i denne forhåndsvisning."
-        : "AI-genereret på bestilling. Ekstra ingredienser bliver vist tydeligt.");
+        : inspire
+          ? "Forslag laves, når du trykker. Vælg derefter en ret for at få hele opskriften."
+          : "AI-genereret på bestilling. Ekstra ingredienser bliver vist tydeligt.");
+  renderIdeas();
   const r = state.generatedRecipe;
   if (!r) {
     $("#recipe-list").innerHTML = "";
@@ -245,15 +285,39 @@ function renderRecipes() {
     (i) => i.productId === null && i.pantryItem === null,
   );
   $("#recipe-list").innerHTML =
-    `<article class="recipe-card generated-card"><div class="recipe-card-top"><span class="match-badge">Ny AI-opskrift · ${r.servings} ${r.servings === 1 ? "person" : "personer"}</span><span class="recipe-time">${icon("clock")}${r.minutes} min.</span></div><h3>${esc(r.title)}</h3><p>${esc(r.description)}</p><div class="recipe-provenance"><strong>Bruger dine valgte varer</strong><p>${state.recipeContext.products.map((p) => esc(p.name)).join(" · ")}</p></div><div class="recipe-extras"><strong>${extras.length ? "Køb også" : "Ingen ekstra indkøb"}</strong><p>${extras.length ? extras.map((i) => esc(i.name)).join(", ") : "Resten er på din liste over basisvarer."}</p></div><div class="recipe-card-bottom"><button data-recipe="generated" class="recipe-link">Se opskrift og indkøbsliste ${icon("arrow")}</button><button id="another-recipe" class="text-button" ${state.variant >= 20 ? "disabled" : ""}>Lav en anden idé</button></div></article>`;
+    `<article class="recipe-card generated-card"><div class="recipe-card-top"><span class="match-badge">Ny AI-opskrift · ${r.servings} ${r.servings === 1 ? "person" : "personer"}</span><span class="recipe-time">${icon("clock")}${r.minutes} min.</span></div><h3>${esc(r.title)}</h3><p>${esc(r.description)}</p><div class="recipe-provenance"><strong>${inspire ? "Bruger disse datovarer" : "Bruger dine valgte varer"}</strong><p>${state.recipeContext.products.map((p) => esc(p.name)).join(" · ")}</p></div><div class="recipe-extras"><strong>${extras.length ? "Køb også" : "Ingen ekstra indkøb"}</strong><p>${extras.length ? extras.map((i) => esc(i.name)).join(", ") : "Resten er på din liste over basisvarer."}</p></div><div class="recipe-card-bottom"><button data-recipe="generated" class="recipe-link">Se opskrift og indkøbsliste ${icon("arrow")}</button>${!inspire ? `<button id="another-recipe" class="text-button" ${state.variant >= 20 ? "disabled" : ""}>Lav en anden idé</button>` : ""}</div></article>`;
 }
-async function generate() {
+function renderIdeas() {
+  const result = state.ideas;
+  $("#ideas-list").hidden = state.mode !== "inspire";
+  if (!result) {
+    $("#ideas-list").innerHTML = "";
+    return;
+  }
+  if (result.status === "cannot_create") {
+    $("#ideas-list").innerHTML =
+      `<div class="empty"><h3>Prøv en anden butik eller andre madvalg</h3><p>${esc(result.reason)}</p></div>`;
+    return;
+  }
+  const names = new Map(
+    state.ideasContext.input.products.map((p) => [p.id, p.name]),
+  );
+  $("#ideas-list").innerHTML =
+    result.ideas
+      .map(
+        (idea, i) =>
+          `<article class="idea-card"><div class="idea-top"><span class="idea-number">IDÉ 0${i + 1}</span><span class="recipe-time">${icon("clock")}ca. ${idea.minutes} min.</span></div><h3>${esc(idea.title)}</h3><p class="idea-description">${esc(idea.description)}</p><div class="idea-products"><strong>Fra butikkens datovarer</strong><ul>${idea.productIds.map((id) => `<li>${esc(names.get(id))}</li>`).join("")}</ul></div><p class="idea-extras"><strong>${idea.extraIngredients.length ? "Køb også" : "Resten fra dit køkken"}</strong><br>${idea.extraIngredients.length ? idea.extraIngredients.map(esc).join(", ") : "Bruger dine angivne basisvarer."}</p><button class="secondary-button" data-idea="${i}" ${state.generating ? "disabled" : ""}>Lav denne opskrift ${icon("arrow")}</button></article>`,
+      )
+      .join("") +
+    '<p class="ideas-note">Forslagene er AI-genererede. Mængder og den endelige indkøbsliste kommer med den fulde opskrift.</p>';
+}
+async function generateSuggestions() {
   if (state.generating) return;
-  // Read the pantry input here too: clicking can happen before its change event fires.
   state.extraPantry = $("#extra-pantry").value;
-  let input;
+  if (state.ideas) state.variant++;
+  let context;
   try {
-    input = generationInput(state.store?.offers || [], state.selected, state);
+    context = ideasInput(state.store?.offers || [], state);
   } catch (e) {
     state.generationMessage = e.message;
     renderRecipes();
@@ -262,11 +326,74 @@ async function generate() {
   const id = ++state.generationId;
   generationController = new AbortController();
   state.generating = true;
+  state.generationKind = "ideas";
+  state.ideas = null;
+  state.ideasContext = null;
+  state.activeIdea = null;
   state.generatedRecipe = null;
   state.recipeContext = null;
   state.generationMessage = "";
   renderRecipes();
-  const snapshot = selectedOffers().map((o) => ({ ...o }));
+  try {
+    const data = await requestRecipe(
+      ideasEndpoint(state.config.recipeEndpoint),
+      context.input,
+      AbortSignal.any([
+        generationController.signal,
+        AbortSignal.timeout(60000),
+      ]),
+    );
+    if (id !== state.generationId) return;
+    state.ideas = validateIdeas(data, context.input);
+    state.ideasContext = context;
+  } catch (e) {
+    if (id === state.generationId)
+      state.generationMessage =
+        e.name === "AbortError" ? "Genereringen er annulleret." : e.message;
+  } finally {
+    if (id === state.generationId) {
+      state.generating = false;
+      renderRecipes();
+    }
+  }
+}
+async function generate(ideaIndex) {
+  if (state.generating) return;
+  if (state.mode === "inspire" && ideaIndex === undefined)
+    return generateSuggestions();
+  state.extraPantry = $("#extra-pantry").value;
+  let input, snapshot;
+  const fromIdea = state.mode === "inspire";
+  try {
+    if (fromIdea) {
+      const idea = state.ideas?.ideas[ideaIndex];
+      if (!idea || !state.ideasContext) return;
+      const prepared = recipeFromIdea(
+        idea,
+        state.ideasContext,
+        state.store?.offers || [],
+        state,
+      );
+      input = prepared.input;
+      snapshot = prepared.offers.map((o) => ({ ...o }));
+      state.activeIdea = ideaIndex;
+    } else {
+      input = generationInput(state.store?.offers || [], state.selected, state);
+      snapshot = selectedOffers().map((o) => ({ ...o }));
+    }
+  } catch (e) {
+    state.generationMessage = e.message;
+    renderRecipes();
+    return;
+  }
+  const id = ++state.generationId;
+  generationController = new AbortController();
+  state.generating = true;
+  state.generationKind = "recipe";
+  state.generatedRecipe = null;
+  state.recipeContext = null;
+  state.generationMessage = "";
+  renderRecipes();
   try {
     const data = await requestRecipe(
       state.config.recipeEndpoint,
@@ -277,8 +404,7 @@ async function generate() {
       ]),
     );
     if (id !== state.generationId) return;
-    const recipe = validateRecipe(data, input);
-    state.generatedRecipe = recipe;
+    state.generatedRecipe = validateRecipe(data, input);
     state.recipeContext = {
       ...input,
       offers: snapshot,
@@ -295,6 +421,7 @@ async function generate() {
     if (id === state.generationId) {
       state.generating = false;
       renderRecipes();
+      if (fromIdea && state.generatedRecipe?.status === "ok") showRecipe();
     }
   }
 }
@@ -500,6 +627,17 @@ for (const [selector, key, convert] of [
     invalidateGeneration();
     renderRecipes();
   });
+document.querySelectorAll('[name="recipe-mode"]').forEach((radio) =>
+  radio.addEventListener("change", (e) => {
+    state.mode = e.target.value;
+    invalidateGeneration();
+    renderRecipes();
+  }),
+);
+$("#ideas-list").addEventListener("click", (e) => {
+  const button = e.target.closest("[data-idea]");
+  if (button) generate(Number(button.dataset.idea));
+});
 $("#generate").addEventListener("click", () => generate());
 $("#cancel-generation").addEventListener("click", () => {
   invalidateGeneration();

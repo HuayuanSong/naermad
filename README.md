@@ -1,7 +1,7 @@
 # Nærmad
 
-**Dine varer. En ny opskrift.** Search for a place, choose a nearby store, select
-1–6 discounted products, then ask a language model to create a Danish recipe for them.
+**Hvad skal vi spise?** Search for a place and choose a nearby store. Let AI suggest
+dishes from its discounted products, or select ingredients for a recipe yourself.
 
 **Public site:** https://huayuansong.github.io/naermad/
 
@@ -15,15 +15,31 @@ See [verification and model evaluation](VERIFICATION.md) for the checks and limi
 
 1. Search for an address or place (landmarks work too), or use browser geolocation.
 2. Choose a participating Netto, føtex or Bilka store. Open the map if useful.
-3. Select the actual products to use. Nothing is automatically selected.
+3. Choose **Jeg vælger varerne** to select 1–6 products yourself, or **Lad AI vælge**
+   to get up to three dish ideas from the store's stock without selecting ingredients.
 4. Choose portions, maximum preparation time and optionally vegetarian food. Confirm
    basic pantry items or add a few of your own.
-5. Click **Lav en opskrift**. One fresh recipe is requested, with quantities and steps.
+5. In manual mode, click **Lav en opskrift**. In inspiration mode, click **Foreslå
+   retter**, then **Lav denne opskrift** on a suggestion you like. Suggestions show
+   the actual discounted products they use and expected extra ingredients. The full
+   recipe is generated only after you pick a dish, with quantities and steps.
    Selected products, pantry ingredients and extra purchases are listed separately.
-   **Lav en anden idé** makes another model request. No catalogue fallback exists.
+   **Lav en anden idé** or **Få nye forslag** makes another model request. No catalogue
+   fallback exists. Switching modes preserves manual selections but clears old results.
 
 Changing products, store or preferences invalidates pending/previous results. The app
 also removes locally expired offers. Lists can be copied, downloaded and printed.
+
+The interface uses a tomato-red, warm-white and plum palette, bold DM Sans headings,
+and a plate/utensils icon. The map and pantry options remain collapsible.
+
+Inspiration considers up to 60 different, unexpired product names per request. Exact
+name duplicates and obviously opaque labels are skipped. Larger inventories rotate
+through another bounded selection when asking for new suggestions. This is not an
+exhaustive search or a food classifier. One model call produces up to three outlines;
+choosing one makes a second call for its full recipe. Suggested product references,
+time limits and output structure are checked server-side and again in the browser.
+The full recipe must use the chosen idea's title and every product it selected.
 
 GitHub Pages serves the Vite frontend; a small Cloudflare Worker handles inference.
 A shared contract bounds requests, validates structured output and verifies that every
@@ -73,11 +89,15 @@ accepting AI requests after its allowance; a **Workers Paid** account can incur
 charges beyond it. Existing account usage shares the allowance. Do not upgrade
 or enable billable usage as part of a strictly-free deployment.
 
-Three final-prompt recipe trials took about 7–15 seconds and used 20–27 neurons each.
+Three initial manual-recipe trials took about 7–15 seconds and used 20–27 neurons each.
 That suggests roughly 370–500 similarly short recipes from a fresh daily allowance,
 shared by all visitors, before other account usage. This is an estimate, not guaranteed
 capacity or latency. Longer outputs cost more; an earlier trial took over 50 seconds.
 Quota errors are displayed without automatic retries. The allowance resets at 00:00 UTC.
+Inspiration uses extra allowance for the suggestion call: two initial batches of three
+ideas took 7–8 seconds and used about 17–20 neurons each, before generating a recipe.
+The manual-recipe capacity estimate above therefore does not apply to complete
+suggestion-plus-recipe sessions.
 
 To redeploy after signing into the intended account and checking its plan:
 
@@ -89,6 +109,8 @@ npx wrangler deploy
 The public `RECIPE_ENDPOINT` is
 `https://naermad-recipes.naermad.workers.dev/recipe`. Set the GitHub Actions repository
 variable of that name and rebuild the Pages site when changing this address.
+Inspiration uses the same Worker at `/ideas`, derived from the configured `/recipe`
+URL; there is no additional key or account setup.
 `GET /health` reports whether a provider binding is present; it does not make a model
 call or prove the account has quota. Smoke-test actual generation separately.
 
@@ -122,8 +144,11 @@ necessarily offers more aggregate compute than every ZeroGPU deployment.
 
 ### Request limits and error behavior
 
-- JSON request bodies are limited to 12 KB; at most six products and six servings.
-- Generation is user-triggered, capped at 2,400 output tokens, with no automatic retries.
+- Recipe request bodies are limited to 12 KB, with at most six products and six servings.
+  Suggestion requests allow up to 60 names and 64 KB; suggestions choose at most six
+  products per dish. Both routes strip location, prices, credentials and unknown fields.
+- Generation is user-triggered, capped at 1,600 output tokens for a suggestion batch
+  and 2,400 for a full recipe, with no automatic retries or speculative recipe calls.
 - A Cloudflare Rate Limiting binding limits each client IP to approximately three
   requests per minute **per location**. It is not a global budget or authentication.
 - CORS restricts allowed browser origins; it does not stop a caller spoofing Origin.
@@ -202,7 +227,9 @@ not inferred from missing package sizes. Stock is not guaranteed at arrival.
 There is no analytics, app database, account requirement for visitors or saved address
 history. Photon receives an explicitly submitted search; Salling receives the chosen
 coordinates; OpenStreetMap serves visible map tiles. The generation Worker receives
-selected product names, pantry items, portions, time, diet preference and variant.
+product names (up to 60 for suggestions, up to six for a recipe), pantry items, portions,
+time, diet preference and variant. Developing a suggestion also sends its title,
+description and expected extras.
 **Address, coordinates, store name, prices and the Salling key are not sent to the
 language model.** Hosting/inference providers still receive network metadata and may
 retain their own logs. Worker observability samples application logs at 10% and

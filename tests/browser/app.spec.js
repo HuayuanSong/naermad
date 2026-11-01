@@ -360,3 +360,196 @@ test("main view and dialogs pass automated WCAG A/AA checks", async ({
     expect(result.violations, screen).toEqual([]);
   }
 });
+
+const suggested = (input) => ({
+  status: "ok",
+  ideas: [
+    {
+      title: "Cremet grøntsagspasta",
+      description: "En pastaret med to af butikkens datovarer.",
+      minutes: 20,
+      productIds: input.products.slice(0, 2).map((p) => p.id),
+      extraIngredients: ["pasta"],
+    },
+    {
+      title: "Grøntsager på panden",
+      description: "En anden idé med en af butikkens varer.",
+      minutes: 15,
+      productIds: [input.products[0].id],
+      extraIngredients: ["hvidløg"],
+    },
+    {
+      title: "En lun frokost",
+      description: "Et tredje syntetisk forslag til UI-test.",
+      minutes: 20,
+      productIds: [input.products[1].id],
+      extraIngredients: [],
+    },
+  ],
+});
+const ideasUrl = "https://recipes.example.test/ideas";
+
+test("AI chooses products from the store; choosing a suggestion requests its full recipe and preserves manual choices", async ({
+  page,
+}) => {
+  const recipeRequests = [],
+    ideaRequests = [];
+  await connectFixture(page, (r, input) => {
+    recipeRequests.push(input);
+    return r.fulfill({
+      json: { ...generated(input), title: input.idea?.title || "Testret" },
+    });
+  });
+  await page.route(ideasUrl, (r) => {
+    const input = r.request().postDataJSON();
+    ideaRequests.push(input);
+    return r.fulfill({ json: suggested(input) });
+  });
+  await page.goto("/");
+  await selectBroccoli(page);
+  await page.getByRole("radio", { name: /Lad AI vælge/ }).check();
+  await expect(page.locator("#offers")).toBeHidden();
+  await expect(page.locator("#generate")).toBeEnabled();
+  expect(ideaRequests).toHaveLength(0);
+  expect(recipeRequests).toHaveLength(0);
+  await page.locator("#generate").click();
+  await expect(page.locator(".idea-card")).toHaveCount(3);
+  expect(ideaRequests).toHaveLength(1);
+  expect(ideaRequests[0].products.length).toBeGreaterThan(1);
+  expect(ideaRequests[0]).not.toHaveProperty("address");
+  expect(ideaRequests[0].products[0]).not.toHaveProperty("price");
+  expect(recipeRequests).toHaveLength(0);
+  await expect(page.locator(".idea-card").first()).toContainText("Køb også");
+  await page.locator('[data-idea="0"]').click();
+  await expect(page.locator("#recipe-dialog")).toBeVisible();
+  await expect(page.locator("#recipe-dialog-title")).toHaveText(
+    "Cremet grøntsagspasta",
+  );
+  expect(recipeRequests).toHaveLength(1);
+  expect(recipeRequests[0].products).toHaveLength(2);
+  expect(recipeRequests[0].idea.title).toBe("Cremet grøntsagspasta");
+  await page.keyboard.press("Escape");
+  await page.locator("#generate").click();
+  await expect(page.locator(".idea-card")).toHaveCount(3);
+  expect(ideaRequests[1].variant).toBe(1);
+  await page.getByRole("radio", { name: /Jeg vælger varerne/ }).check();
+  await expect(page.locator(".idea-card")).toHaveCount(0);
+  await expect(page.locator(".selection-heading")).toContainText(
+    "1 varer valgt",
+  );
+  await expect(page.locator("#selected-products")).toContainText("Broccoli");
+});
+
+test("inspiration handles refusal, invalid references and quota errors without a recipe fallback", async ({
+  page,
+}) => {
+  await connectFixture(page);
+  let reply = {
+      status: "cannot_create",
+      reason: "Ingen egnede varer til dine valg.",
+      ideas: [],
+    },
+    status = 200;
+  await page.route(ideasUrl, (r) => r.fulfill({ status, json: reply }));
+  await page.goto("/");
+  await page.getByRole("radio", { name: /Lad AI vælge/ }).check();
+  await page.locator("#generate").click();
+  await expect(page.locator("#ideas-list")).toContainText("Ingen egnede varer");
+  reply = {
+    status: "ok",
+    ideas: [
+      {
+        title: "Opfundet",
+        description: "Ukendt reference.",
+        minutes: 10,
+        productIds: ["p60"],
+        extraIngredients: [],
+      },
+    ],
+  };
+  await page.locator("#generate").click();
+  await expect(page.locator("#generation-status")).toContainText(
+    "Forslagene kunne ikke bruges",
+  );
+  status = 429;
+  reply = { error: "Dagens gratis opskriftskvote er brugt op." };
+  await page.locator("#generate").click();
+  await expect(page.locator("#generation-status")).toContainText(
+    "gratis opskriftskvote",
+  );
+  await expect(page.locator(".idea-card")).toHaveCount(0);
+  await expect(page.locator(".recipe-card")).toHaveCount(0);
+});
+
+test("changing store, preferences or mode discards stale inspiration and pending results", async ({
+  page,
+}) => {
+  await connectFixture(page);
+  let pending;
+  await page.route(ideasUrl, async (r) => {
+    const input = r.request().postDataJSON();
+    await new Promise((resolve) => {
+      pending = resolve;
+    });
+    await r.fulfill({ json: suggested(input) }).catch(() => {});
+  });
+  await page.goto("/");
+  await page.getByRole("radio", { name: /Lad AI vælge/ }).check();
+  await page.locator("#generate").click();
+  await expect.poll(() => Boolean(pending)).toBe(true);
+  await page.locator('[data-store="demo-2"]').click();
+  pending();
+  await expect(page.locator(".idea-card")).toHaveCount(0);
+  await expect(page.locator("#generate")).toBeEnabled();
+  await page.unroute(ideasUrl);
+  await page.route(ideasUrl, (r) =>
+    r.fulfill({ json: suggested(r.request().postDataJSON()) }),
+  );
+  await page.locator("#generate").click();
+  await expect(page.locator(".idea-card")).toHaveCount(3);
+  await page.locator("#servings").selectOption("4");
+  await expect(page.locator(".idea-card")).toHaveCount(0);
+  await page.locator("#generate").click();
+  await expect(page.locator(".idea-card")).toHaveCount(3);
+  await page.getByRole("radio", { name: /Jeg vælger varerne/ }).check();
+  await expect(page.locator(".idea-card")).toHaveCount(0);
+  await expect(page.locator("#generate")).toBeDisabled();
+});
+
+test("inspiration and new theme pass accessibility checks and fit narrow screens", async ({
+  page,
+}) => {
+  await connectFixture(page, (r, input) =>
+    r.fulfill({
+      json: { ...generated(input), title: input.idea?.title || "Testret" },
+    }),
+  );
+  await page.route(ideasUrl, (r) =>
+    r.fulfill({ json: suggested(r.request().postDataJSON()) }),
+  );
+  await page.goto("/");
+  await page.getByRole("radio", { name: /Lad AI vælge/ }).check();
+  await page.locator("#generate").click();
+  await expect(page.locator(".idea-card")).toHaveCount(3);
+  expect(
+    (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze())
+      .violations,
+  ).toEqual([]);
+  await page.setViewportSize({ width: 320, height: 800 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.locator('[data-idea="0"]').click();
+  await expect(page.locator("#recipe-dialog")).toBeVisible();
+  expect(
+    await page
+      .locator("#recipe-dialog")
+      .evaluate((el) => el.scrollWidth <= el.clientWidth),
+  ).toBe(true);
+  expect(
+    (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze())
+      .violations,
+  ).toEqual([]);
+});

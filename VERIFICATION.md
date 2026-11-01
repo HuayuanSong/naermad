@@ -2,13 +2,13 @@
 
 ## Automated and visual checks
 
-- **20 API/data/generation tests passed.** Coverage includes active markdown filtering,
+- **26 API/data/generation tests passed.** Coverage includes active markdown filtering,
   coordinates, deduplication, Salling request coalescing/cache/errors, bounded generation
   requests, removal of location/credential fields, product and pantry references,
   requested servings/time, invalid model output, both inference adapters, CORS,
   request size limits, burst throttling, sanitized upstream errors, free-quota errors,
   opaque product labels and the narrow raw-meat-washing instruction check.
-- **9 Chromium browser tests passed.** No automatic product selection or generation;
+- **13 Chromium browser tests passed.** No automatic product selection or generation;
   an explicit click sends only selected products/preferences. Tests cover generated
   result provenance, extras, portions, another-idea requests, downloads, cancellation,
   stale response invalidation, missing endpoints, malformed results and provider errors,
@@ -23,6 +23,39 @@
 Successful model responses in automated tests are **synthetic fixtures**. They
 establish application behavior and adapter contracts, not recipe quality. No fixture
 provider or static-recipe fallback is included in the application.
+
+## Store inspiration and theme update
+
+The additional **Lad AI vælge** mode was checked alongside the original manual flow.
+The new tests cover bounded/rotating stock selections, expired and opaque labels,
+unknown product references, duplicate ideas, time limits, refusal and quota errors,
+sharing the same IP burst limiter across both routes, and preserving a chosen dish's
+identity when requesting its recipe. Browser checks cover two-stage generation,
+manual selection preservation, store/preference/mode changes, stale response rejection,
+three suggestion cards, 320-pixel overflow and accessibility in the new theme.
+
+Real Cloudflare inference was checked with four small inventory scenarios:
+
+| Input | Result | Latency | Neurons |
+| --- | --- | ---: | ---: |
+| 26 previously observed Salling product names | Three ideas using stock subsets | 7.8 s | 19.7 |
+| Mixed meat, vegetarian and nonfood stock; vegetarian, 20 minutes | Three ideas choosing vegetarian products | 7.2 s | 16.5 |
+| Detergent and batteries | Refused nonfood-only inventory | 1.2 s | 7.5 |
+| Dry chickpeas and raw chicken; vegetarian, 20 minutes | Refused incompatible selection | 2.8 s | 8.4 |
+
+A full recipe was generated from the first store suggestion in 12.3 seconds, using
+its three selected products and the same title. This pilot exposed that expected
+extras were not being passed into the full-recipe prompt; they are now included.
+Expected extras are provisional, and the full recipe supplies the final shopping list.
+
+[Actual pilot inputs and outputs](docs/inspiration-evaluation-2026-11-01.json) are
+preserved for review. Inventory timestamps in that pilot were synthetic; it did not
+verify current stock. These few manually reviewed samples are not a reliability or
+food-safety benchmark. The existing limitations below still apply.
+
+Desktop and mobile theme screenshots were inspected: tomato red, warm white and
+plum accents, with bold sans-serif headings and a new plate/utensils icon. Screenshot
+fixtures were used only for local visual testing and are not included in runtime data.
 
 ## Real model evaluation
 

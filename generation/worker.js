@@ -7,13 +7,16 @@ import {
   DEFAULT_CF_MODEL,
   DEFAULT_HF_MODEL,
   PROMPT_VERSION,
+  IDEAS_PROMPT_VERSION,
+  validateIdeasRequest,
 } from "./contract.js";
 
-const MAX_BODY = 12000;
-async function readJson(request) {
+import { ideasSchema, buildIdeasMessages, validateIdeas } from "./ideas.js";
+
+async function readJson(request, maxBody = 12000) {
   if (!request.headers.get("Content-Type")?.startsWith("application/json"))
     throw new RecipeError("Send JSON.", 415);
-  if (Number(request.headers.get("Content-Length")) > MAX_BODY)
+  if (Number(request.headers.get("Content-Length")) > maxBody)
     throw new RecipeError("Forespørgslen er for stor.", 413);
   const reader = request.body?.getReader();
   if (!reader) throw new RecipeError("Forespørgslen er tom.");
@@ -24,7 +27,7 @@ async function readJson(request) {
       const { done, value } = await reader.read();
       if (done) break;
       bytes += value.byteLength;
-      if (bytes > MAX_BODY) {
+      if (bytes > maxBody) {
         await reader.cancel();
         throw new RecipeError("Forespørgslen er for stor.", 413);
       }
@@ -46,10 +49,17 @@ async function readJson(request) {
   }
 }
 
-export async function generateRecipe(input, env, fetcher = fetch) {
+export const generateRecipe = (input, env, fetcher = fetch) =>
+  generate(input, env, fetcher, "recipe");
+export const generateIdeas = (input, env, fetcher = fetch) =>
+  generate(input, env, fetcher, "ideas");
+
+async function generate(input, env, fetcher, kind) {
   const provider = env.RECIPE_PROVIDER || "cloudflare";
-  const messages = buildMessages(input),
-    schema = recipeSchema(input);
+  const messages =
+      kind === "ideas" ? buildIdeasMessages(input) : buildMessages(input),
+    schema = kind === "ideas" ? ideasSchema(input) : recipeSchema(input),
+    maxTokens = kind === "ideas" ? 1600 : 2400;
   let output, model, usage;
   if (provider === "huggingface") {
     if (!env.HF_TOKEN)
@@ -66,12 +76,12 @@ export async function generateRecipe(input, env, fetcher = fetch) {
         body: JSON.stringify({
           model,
           messages,
-          max_tokens: 2400,
+          max_tokens: maxTokens,
           temperature: 0.7,
           top_p: 0.8,
           response_format: {
             type: "json_schema",
-            json_schema: { name: "recipe", strict: true, schema },
+            json_schema: { name: kind, strict: true, schema },
           },
         }),
         signal: AbortSignal.timeout(55000),
@@ -95,13 +105,13 @@ export async function generateRecipe(input, env, fetcher = fetch) {
     try {
       response = await env.AI.run(model, {
         messages,
-        max_completion_tokens: 2400,
+        max_completion_tokens: maxTokens,
         temperature: 0.7,
         top_p: 0.8,
         chat_template_kwargs: { enable_thinking: false },
         response_format: {
           type: "json_schema",
-          json_schema: { name: "recipe", strict: true, schema },
+          json_schema: { name: kind, strict: true, schema },
         },
       });
     } catch (error) {
@@ -136,13 +146,16 @@ export async function generateRecipe(input, env, fetcher = fetch) {
     output = response.response ?? response.choices?.[0]?.message?.content;
     usage = response.usage;
   } else throw new RecipeError("Ukendt modeludbyder.", 503);
-  const recipe = validateRecipe(output, input);
+  const recipe =
+    kind === "ideas"
+      ? validateIdeas(output, input)
+      : validateRecipe(output, input);
   return {
     ...recipe,
     model,
     provider,
     generatedAt: new Date().toISOString(),
-    promptVersion: PROMPT_VERSION,
+    promptVersion: kind === "ideas" ? IDEAS_PROMPT_VERSION : PROMPT_VERSION,
     usage: usage && {
       promptTokens: Number.isSafeInteger(usage.prompt_tokens)
         ? usage.prompt_tokens
@@ -181,7 +194,8 @@ export default {
       });
     if (!origin || !allowed.includes(origin))
       return json({ error: "Denne oprindelse har ikke adgang." }, 403);
-    if (path !== "/recipe") return json({ error: "Ukendt endpoint." }, 404);
+    if (!["/recipe", "/ideas"].includes(path))
+      return json({ error: "Ukendt endpoint." }, 404);
     if (request.method === "OPTIONS")
       return new Response(null, {
         status: 204,
@@ -194,7 +208,10 @@ export default {
       });
     if (request.method !== "POST") return json({ error: "Brug POST." }, 405);
     try {
-      const input = validateRequest(await readJson(request));
+      const isIdeas = path === "/ideas";
+      const input = isIdeas
+        ? validateIdeasRequest(await readJson(request, 64000))
+        : validateRequest(await readJson(request));
       // These are approximate per-location burst limits, not a global budget.
       // Workers Free's provider quota is the hard, non-billable daily ceiling.
       if (env.RATE_LIMITER) {
@@ -209,10 +226,13 @@ export default {
             { status: 429, headers: { ...headers, "Retry-After": "60" } },
           );
       }
-      const result = await generateRecipe(input, env);
+      const result = await (isIdeas ? generateIdeas : generateRecipe)(
+        input,
+        env,
+      );
       console.log(
         JSON.stringify({
-          event: "recipe_generated",
+          event: isIdeas ? "ideas_generated" : "recipe_generated",
           provider: result.provider,
           model: result.model,
           status: result.status,

@@ -1,0 +1,497 @@
+{
+  "date": "2026-11-01T20:10:11.728Z",
+  "model": "@cf/google/gemma-4-26b-a4b-it",
+  "method": "Real Cloudflare inference, synthetic inventory timestamps, first case uses previously observed public Salling product names. Small manual pilot, not an accuracy benchmark.",
+  "samples": [
+    {
+      "name": "store-products",
+      "input": {
+        "products": [
+          {
+            "id": "p1",
+            "name": "MARS BUDDING 4-PAK DANETTE"
+          },
+          {
+            "id": "p2",
+            "name": "SKIVEOST L 45+ H.C. ANDERSE"
+          },
+          {
+            "id": "p3",
+            "name": "45+ ML KLOVBORG"
+          },
+          {
+            "id": "p4",
+            "name": "SAGA CLASSIC CASTELLO"
+          },
+          {
+            "id": "p5",
+            "name": "GULD SKIVEOST 3X140G MAMMEN"
+          },
+          {
+            "id": "p6",
+            "name": "FANØ BRØD SIGNATURBRØD"
+          },
+          {
+            "id": "p7",
+            "name": "XMATURE CHEDDAR CASTELLO"
+          },
+          {
+            "id": "p8",
+            "name": "BRIOCHE BURGERBOLLER DAN CAKE"
+          },
+          {
+            "id": "p9",
+            "name": "CAMEMBERT NORMANDIE SALLING PRINCIP"
+          },
+          {
+            "id": "p10",
+            "name": "A38 NATURAL 1KG ARLA CULTURA"
+          },
+          {
+            "id": "p11",
+            "name": "ØKO GÆR MALTESERKORS"
+          },
+          {
+            "id": "p12",
+            "name": "KYLLINGEPØL. 1H 3 STJERNET"
+          },
+          {
+            "id": "p13",
+            "name": "BACON POSTEJ BORNHOLMER"
+          },
+          {
+            "id": "p14",
+            "name": "TWIX BUDDING 4-PAK DANETTE"
+          },
+          {
+            "id": "p15",
+            "name": "DET GODE SOL RUGBRØD SCHULSTAD"
+          },
+          {
+            "id": "p16",
+            "name": "FRANSK HOTDOG HATTING"
+          },
+          {
+            "id": "p17",
+            "name": "TYKMÆLK 1KG KLØVER"
+          },
+          {
+            "id": "p18",
+            "name": "BURGUNDERSKINKE MINIMUM"
+          },
+          {
+            "id": "p19",
+            "name": "PEPPERONI PIZZA CASA T"
+          },
+          {
+            "id": "p20",
+            "name": "HERKULES KOHBERG"
+          },
+          {
+            "id": "p21",
+            "name": "JENSENS PULLED JENSENS"
+          },
+          {
+            "id": "p22",
+            "name": "BUTTERDEJ NÆMT"
+          },
+          {
+            "id": "p23",
+            "name": "CAFÉ SANDWICH KOHBERG"
+          },
+          {
+            "id": "p24",
+            "name": "SKYR M/ VANILJE CHEASY"
+          },
+          {
+            "id": "p25",
+            "name": "GÆR MALTESERKORS"
+          },
+          {
+            "id": "p26",
+            "name": "KEFIR MANGO GOOD GUT"
+          }
+        ],
+        "servings": 2,
+        "maxMinutes": 30,
+        "vegetarian": false,
+        "pantry": [
+          "olie",
+          "salt",
+          "sort peber",
+          "vand"
+        ],
+        "variant": 0
+      },
+      "result": {
+        "status": "ok",
+        "ideas": [
+          {
+            "title": "Luksus Brioche Burgere",
+            "description": "Bløde briocheboller fyldt med saftigt pulled kød og lag af skiveost.",
+            "minutes": 15,
+            "productIds": [
+              "p8",
+              "p21",
+              "p5"
+            ],
+            "extraIngredients": [
+              "salat",
+              "dressing"
+            ]
+          },
+          {
+            "title": "Ostebord på Rugbrød",
+            "description": "En klassisk frokost med mørkt rugbrød toppet med forskellige oste og skinke.",
+            "minutes": 10,
+            "productIds": [
+              "p15",
+              "p7",
+              "p18"
+            ],
+            "extraIngredients": [
+              "smør"
+            ]
+          },
+          {
+            "title": "Croissant-agtige butterdejssnegle",
+            "description": "Sprød butterdej bagt med skinke og ost til en hurtig snack eller let måltid.",
+            "minutes": 25,
+            "productIds": [
+              "p22",
+              "p18",
+              "p4"
+            ],
+            "extraIngredients": []
+          }
+        ],
+        "model": "@cf/google/gemma-4-26b-a4b-it",
+        "provider": "cloudflare",
+        "generatedAt": "2026-11-01T20:10:19.540Z",
+        "promptVersion": "naermad-ideas-v1",
+        "usage": {
+          "promptTokens": 1147,
+          "completionTokens": 341
+        }
+      },
+      "latencyMs": 7811,
+      "usage": {
+        "prompt_tokens": 1147,
+        "completion_tokens": 341,
+        "total_tokens": 1488,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 19.727272033691406
+      }
+    },
+    {
+      "name": "selected-store-idea-full-recipe",
+      "input": {
+        "products": [
+          {
+            "id": "p1",
+            "name": "BRIOCHE BURGERBOLLER DAN CAKE"
+          },
+          {
+            "id": "p2",
+            "name": "JENSENS PULLED JENSENS"
+          },
+          {
+            "id": "p3",
+            "name": "GULD SKIVEOST 3X140G MAMMEN"
+          }
+        ],
+        "servings": 2,
+        "maxMinutes": 30,
+        "vegetarian": false,
+        "pantry": [
+          "olie",
+          "salt",
+          "sort peber",
+          "vand"
+        ],
+        "variant": 0,
+        "idea": {
+          "title": "Luksus Brioche Burgere",
+          "description": "Bløde briocheboller fyldt med saftigt pulled kød og lag af skiveost."
+        }
+      },
+      "result": {
+        "status": "ok",
+        "title": "Luksus Brioche Burgere",
+        "description": "Bløde briocheboller fyldt med saftigt pulled kød og lag af skiveost.",
+        "servings": 2,
+        "minutes": 20,
+        "ingredients": [
+          {
+            "name": "BRIOCHE BURGERBOLLER DAN CAKE",
+            "quantity": "2 stk.",
+            "productId": "p1",
+            "pantryItem": null
+          },
+          {
+            "name": "JENSENS PULLED JENSENS",
+            "quantity": "ca. 200-250 g",
+            "productId": "p2",
+            "pantryItem": null
+          },
+          {
+            "name": "GULD SKIVEOST 3X140G MAMMEN",
+            "quantity": "4 skiver",
+            "productId": "p3",
+            "pantryItem": null
+          },
+          {
+            "name": "olie",
+            "quantity": "1 spsk.",
+            "productId": null,
+            "pantryItem": "olie"
+          },
+          {
+            "name": "salt",
+            "quantity": "efter smag",
+            "productId": null,
+            "pantryItem": "salt"
+          },
+          {
+            "name": "sort peber",
+            "quantity": "efter smag",
+            "productId": null,
+            "pantryItem": "sort peber"
+          }
+        ],
+        "steps": [
+          "Skær briochebollerne over i to halvdele.",
+          "Varm en pande op med en smule olie.",
+          "Varm det færdige 'Pulled Jensens' kød på en pande eller i en lille gryde, indtil det er gennemvarmt.",
+          "Rist burgerbollerne på den varme pande i lidt olie, indtil de er let gyldne og sprøde på indersiden.",
+          "Læg skiver af Guld skiveost på de varme boller (eller på det varme kød), så osten begynder at smelte let.",
+          "Fordel det varme pulled kød på den nederste del af bollerne.",
+          "Smag til med salt og sort peber efter behov.",
+          "Læg den øverste bolle på og server straks."
+        ],
+        "model": "@cf/google/gemma-4-26b-a4b-it",
+        "provider": "cloudflare",
+        "generatedAt": "2026-11-01T20:10:31.823Z",
+        "promptVersion": "naermad-generated-v4",
+        "usage": {
+          "promptTokens": 969,
+          "completionTokens": 580
+        }
+      },
+      "latencyMs": 12282,
+      "usage": {
+        "prompt_tokens": 969,
+        "completion_tokens": 580,
+        "total_tokens": 1549,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 24.627273559570312
+      }
+    },
+    {
+      "name": "vegetarian-mixed-stock",
+      "input": {
+        "products": [
+          {
+            "id": "p1",
+            "name": "Broccoli 1 stk."
+          },
+          {
+            "id": "p2",
+            "name": "Madlavningsfløde 250 ml"
+          },
+          {
+            "id": "p3",
+            "name": "Kikærter på dåse"
+          },
+          {
+            "id": "p4",
+            "name": "Rå kyllingebrystfilet 450 g"
+          },
+          {
+            "id": "p5",
+            "name": "Kyllingesalat færdiglavet"
+          },
+          {
+            "id": "p6",
+            "name": "Opvaskemiddel"
+          }
+        ],
+        "servings": 2,
+        "maxMinutes": 20,
+        "vegetarian": true,
+        "pantry": [
+          "olie",
+          "salt",
+          "sort peber",
+          "vand",
+          "pasta",
+          "ris"
+        ],
+        "variant": 0
+      },
+      "result": {
+        "status": "ok",
+        "ideas": [
+          {
+            "title": "Cremet broccoli og kikærtegryde",
+            "description": "En mættende vegetarisk gryderet med broccoli og kikærter i en cremet flødesovs.",
+            "minutes": 15,
+            "productIds": [
+              "p1",
+              "p2",
+              "p3"
+            ],
+            "extraIngredients": [
+              "hvidløg",
+              "bouillonterning"
+            ]
+          },
+          {
+            "title": "Pasta med broccoli og flødesovs",
+            "description": "Pasta vendt i en let sauce af madlavningsfløde og dampet broccoli.",
+            "minutes": 12,
+            "productIds": [
+              "p1",
+              "p2"
+            ],
+            "extraIngredients": [
+              "parmesan"
+            ]
+          },
+          {
+            "title": "Varme kikærter med broccoli og ris",
+            "description": "En hurtig og sund ret med stegte kikærter og broccoli serveret med ris.",
+            "minutes": 20,
+            "productIds": [
+              "p1",
+              "p3"
+            ],
+            "extraIngredients": [
+              "soya",
+              "citron"
+            ]
+          }
+        ],
+        "model": "@cf/google/gemma-4-26b-a4b-it",
+        "provider": "cloudflare",
+        "generatedAt": "2026-11-01T20:10:39.024Z",
+        "promptVersion": "naermad-ideas-v1",
+        "usage": {
+          "promptTokens": 777,
+          "completionTokens": 347
+        }
+      },
+      "latencyMs": 7199,
+      "usage": {
+        "prompt_tokens": 777,
+        "completion_tokens": 347,
+        "total_tokens": 1124,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 16.527273178100586
+      }
+    },
+    {
+      "name": "nonfood-stock",
+      "input": {
+        "products": [
+          {
+            "id": "p1",
+            "name": "Opvaskemiddel"
+          },
+          {
+            "id": "p2",
+            "name": "Batterier AA"
+          }
+        ],
+        "servings": 2,
+        "maxMinutes": 30,
+        "vegetarian": false,
+        "pantry": [
+          "olie",
+          "salt",
+          "sort peber",
+          "vand"
+        ],
+        "variant": 0
+      },
+      "result": {
+        "status": "cannot_create",
+        "reason": "Der er ingen madvarer tilgængelige i det valgte udvalg.",
+        "ideas": [],
+        "model": "@cf/google/gemma-4-26b-a4b-it",
+        "provider": "cloudflare",
+        "generatedAt": "2026-11-01T20:10:40.220Z",
+        "promptVersion": "naermad-ideas-v1",
+        "usage": {
+          "promptTokens": 697,
+          "completionTokens": 44
+        }
+      },
+      "latencyMs": 1196,
+      "usage": {
+        "prompt_tokens": 697,
+        "completion_tokens": 44,
+        "total_tokens": 741,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 7.53636360168457
+      }
+    },
+    {
+      "name": "no-compatible-products",
+      "input": {
+        "products": [
+          {
+            "id": "p1",
+            "name": "Tørrede kikærter 500g"
+          },
+          {
+            "id": "p2",
+            "name": "Rå kylling 450g"
+          }
+        ],
+        "servings": 2,
+        "maxMinutes": 20,
+        "vegetarian": true,
+        "pantry": [
+          "olie",
+          "salt",
+          "sort peber",
+          "vand"
+        ],
+        "variant": 0
+      },
+      "result": {
+        "status": "cannot_create",
+        "reason": "De tilgængelige produkter kan ikke bruges til at lave et måltid inden for tidsrammen, da tørrede bælgfrugter kræver lang udblødning og tilberedning.",
+        "ideas": [],
+        "model": "@cf/google/gemma-4-26b-a4b-it",
+        "provider": "cloudflare",
+        "generatedAt": "2026-11-01T20:10:42.984Z",
+        "promptVersion": "naermad-ideas-v1",
+        "usage": {
+          "promptTokens": 709,
+          "completionTokens": 71
+        }
+      },
+      "latencyMs": 2762,
+      "usage": {
+        "prompt_tokens": 709,
+        "completion_tokens": 71,
+        "total_tokens": 780,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 8.381817817687988
+      }
+    }
+  ],
+  "note": "Pilot before carrying expected extraIngredients into the follow-up recipe request. Production now includes them. Not an independent benchmark."
+}

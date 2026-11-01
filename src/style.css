@@ -1,14 +1,14 @@
 :root {
   font-family: "DM Sans", sans-serif;
-  color: #253b30;
-  background: #f7f6f0;
+  color: #2c2438;
+  background: #fff8f3;
   font-synthesis: none;
   font-size: 16px;
-  --green: #254b37;
-  --olive: #e8edda;
-  --line: #dedfd4;
-  --muted: #626c61;
-  --serif: "Fraunces", Georgia, serif;
+  --ink: #2c2438;
+  --soft: #fbe8df;
+  --line: #e7d9d3;
+  --muted: #6b5b65;
+  --display: "DM Sans", sans-serif;
 }
 * {
   box-sizing: border-box;
@@ -47,7 +47,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 summary:focus-visible {
-  outline: 3px solid #b16b29;
+  outline: 3px solid #b63724;
   outline-offset: 4px;
 }
 a {
@@ -93,7 +93,7 @@ button .icon {
   text-decoration: none;
 }
 .brand-dot {
-  color: #b16b29;
+  color: #b63724;
   margin-left: -9px;
 }
 .header-caption {
@@ -107,9 +107,9 @@ button .icon {
   margin-left: auto;
 }
 .status-badge {
-  background: #eee9dc;
-  color: #6a5737;
-  border: 1px solid #ded1b8;
+  background: #fbe8df;
+  color: #783928;
+  border: 1px solid #e5bca9;
   border-radius: 30px;
   padding: 7px 13px;
   font-size: 13px;
@@ -121,16 +121,16 @@ button .icon {
   width: 6px;
   height: 6px;
   border-radius: 100%;
-  background: #a67b3c;
+  background: #ac5434;
   margin-right: 7px;
 }
 .status-badge.live {
-  background: #e7efdf;
-  color: #38582c;
-  border-color: #ccd9bf;
+  background: #f0ecf8;
+  color: #4d3d80;
+  border-color: #d5c9e7;
 }
 .status-badge.live:before {
-  background: #517d3a;
+  background: #4d3d80;
 }
 .text-button {
   background: none;
@@ -156,7 +156,7 @@ button .icon {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.65px;
-  color: #69735d;
+  color: #6b5b65;
   margin-bottom: 12px;
 }
 h1,
@@ -166,12 +166,12 @@ p {
   margin: 0;
 }
 h1 {
-  font: 500 clamp(48px, 5.5vw, 74px)/1.05 var(--serif);
+  font: 700 clamp(48px, 5.5vw, 74px)/1.05 var(--display);
   letter-spacing: -3.3px;
 }
 h1 em {
   font-style: normal;
-  color: #73814e;
+  color: #b63724;
 }
 .hero p {
   font-size: 17px;
@@ -181,7 +181,7 @@ h1 em {
 }
 .hero-note {
   width: 382px;
-  background: var(--olive);
+  background: var(--soft);
   padding: 27px 31px 23px;
   transform: rotate(1.5deg);
   border-radius: 4px;
@@ -202,7 +202,7 @@ h1 em {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.3px;
-  color: #596849;
+  color: #6b5b65;
 }
 .hero-note ol {
   list-style: none;
@@ -219,21 +219,21 @@ h1 em {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 1px;
-  color: #6c785a;
+  color: #6b5b65;
   padding-top: 3px;
 }
 .note-bottom {
-  border-top: 1px solid #c8d2b8;
+  border-top: 1px solid #e7d9d3;
   padding-top: 16px;
   font-size: 14px;
-  color: #596849;
+  color: #6b5b65;
   display: flex;
   align-items: center;
   gap: 9px;
 }
 .demo-notice {
-  border: 1px solid #e3d7bc;
-  background: #f4efdf;
+  border: 1px solid #e5bca9;
+  background: #f9e9d8;
   padding: 12px 16px;
   display: flex;
   align-items: center;
@@ -257,10 +257,10 @@ h1 em {
   display: flex;
   align-items: center;
   background: #fff;
-  border: 1px solid #cbd0c3;
+  border: 1px solid #e7d9d3;
   border-radius: 8px;
   padding: 8px;
-  box-shadow: 0 3px 8px #253b3005;
+  box-shadow: 0 3px 8px #2c243808;
   gap: 8px;
 }
 .address-field {
@@ -272,7 +272,7 @@ h1 em {
   min-width: 0;
 }
 .address-field > .icon {
-  color: #727c69;
+  color: #6b5b65;
 }
 .address-field input {
   border: 0;
@@ -284,7 +284,7 @@ h1 em {
   font-size: 16px;
 }
 .address-field input::placeholder {
-  color: #737c71;
+  color: #6b5b65;
 }
 .radius-field {
   display: flex;
@@ -299,7 +299,7 @@ h1 em {
   border: 0;
   background: transparent;
   font-weight: 600;
-  color: var(--green);
+  color: var(--ink);
   padding: 5px;
 }
 .primary-button {
@@ -309,16 +309,16 @@ h1 em {
   gap: 10px;
   border-radius: 5px;
   padding: 14px 22px;
-  background: var(--green);
+  background: #b63724;
   color: white;
   font-weight: 600;
   min-height: 48px;
 }
 .primary-button:hover {
-  background: #183e2a;
+  background: #8d291d;
 }
 .location-button {
-  background: #f2f3ec;
+  background: #f0ecf8;
   width: 49px;
   height: 49px;
   display: grid;
@@ -327,7 +327,7 @@ h1 em {
   flex-shrink: 0;
 }
 .location-button:hover {
-  background: var(--olive);
+  background: var(--soft);
 }
 .search-help {
   margin-top: 9px;
@@ -342,7 +342,7 @@ h1 em {
   right: 0;
   background: #fff;
   border: 1px solid var(--line);
-  box-shadow: 0 12px 24px #253b3020;
+  box-shadow: 0 12px 24px #2c243820;
   border-radius: 7px;
   padding: 10px;
 }
@@ -366,11 +366,11 @@ h1 em {
   flex: 1;
 }
 .address-results button:hover {
-  background: #f0f3e8;
+  background: #fdf0e8;
 }
 .message {
-  background: #e8edda;
-  border-left: 3px solid #7b8957;
+  background: #fbe8df;
+  border-left: 3px solid #b63724;
   margin: -10px 0 25px;
   padding: 14px 18px;
   font-size: 15px;
@@ -402,7 +402,7 @@ h1 em {
   font-weight: 600;
 }
 .count-badge {
-  background: var(--olive);
+  background: var(--soft);
   border-radius: 50%;
   width: 25px;
   height: 25px;
@@ -423,8 +423,8 @@ h1 em {
 #map {
   height: 238px;
   border-radius: 7px;
-  background: #e5e9df;
-  border: 1px solid #d7ddcd;
+  background: #f0ecf8;
+  border: 1px solid #e7d9d3;
   z-index: 0;
 }
 .leaflet-container {
@@ -435,7 +435,7 @@ h1 em {
 }
 .leaflet-control-zoom {
   box-shadow: none !important;
-  border: 1px solid #cbd0c3 !important;
+  border: 1px solid #e7d9d3 !important;
 }
 .store-pin {
   background: none;
@@ -449,7 +449,7 @@ h1 em {
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
   border: 2px solid white;
-  background: #7e8d61;
+  background: #4d3d80;
   color: white;
   box-shadow: 0 2px 5px #0003;
   font-size: 0;
@@ -458,7 +458,7 @@ h1 em {
   content: "";
 }
 .store-pin span.active {
-  background: #254b37;
+  background: #2c2438;
   width: 34px;
   height: 34px;
 }
@@ -483,7 +483,7 @@ h1 em {
 .store-card {
   border: 1px solid var(--line);
   padding: 15px 14px;
-  background: #fbfbf7;
+  background: #fffdfb;
   border-radius: 6px;
   width: 100%;
   text-align: left;
@@ -492,13 +492,13 @@ h1 em {
     border-color 0.15s;
 }
 .store-card:hover {
-  border-color: #9ca98a;
-  background: #f1f4e9;
+  border-color: #bc7965;
+  background: #fdf0e8;
 }
 .store-card.active {
-  background: #edf2e5;
-  border-color: #748a63;
-  box-shadow: inset 3px 0 #57734a;
+  background: #fdf0e8;
+  border-color: #b63724;
+  box-shadow: inset 3px 0 #b63724;
 }
 .store-top {
   display: flex;
@@ -513,8 +513,8 @@ h1 em {
   font-size: 11px;
   border-radius: 3px;
   padding: 4px 7px;
-  background: #e4e5dc;
-  color: #354538;
+  background: #f0ecf8;
+  color: #2c2438;
 }
 .brand-label.netto {
   background: #f5e498;
@@ -535,7 +535,7 @@ h1 em {
   font-weight: 600;
 }
 .store-number {
-  color: #738665;
+  color: #6b5b65;
 }
 .store-address {
   font-size: 12px;
@@ -569,7 +569,7 @@ h1 em {
   align-items: center;
 }
 .offer-header h2 {
-  font: 500 29px/1.25 var(--serif);
+  font: 700 29px/1.25 var(--display);
   letter-spacing: -0.7px;
 }
 .offer-header p {
@@ -589,7 +589,7 @@ h1 em {
   margin-bottom: 9px;
 }
 .selection-heading strong {
-  color: var(--green);
+  color: var(--ink);
 }
 .selection-heading .text-button {
   font-size: 12px;
@@ -600,8 +600,8 @@ h1 em {
   gap: 10px;
 }
 .offer-card {
-  border: 1px solid #d6dacd;
-  background: #fdfdf9;
+  border: 1px solid #e7d9d3;
+  background: #fffdfb;
   border-radius: 6px;
   overflow: hidden;
   transition:
@@ -609,8 +609,8 @@ h1 em {
     background 0.15s;
 }
 .offer-card.selected {
-  background: #f1f4e8;
-  border-color: #a6b591;
+  background: #fdf0e8;
+  border-color: #bc7965;
 }
 .offer-toggle {
   text-align: left;
@@ -630,8 +630,8 @@ h1 em {
   margin-bottom: 13px;
 }
 .discount {
-  background: #f1e3cd;
-  color: #785126;
+  background: #fbe8df;
+  color: #783928;
   border-radius: 3px;
   font-size: 12px;
   padding: 3px 6px;
@@ -640,21 +640,21 @@ h1 em {
 .selection-icon {
   width: 22px;
   height: 22px;
-  border: 1px solid #c2cbb5;
+  border: 1px solid #e7d9d3;
   border-radius: 50%;
   display: grid;
   place-items: center;
   background: #fff;
-  color: #7a8766;
+  color: #6b5b65;
 }
 .selection-icon .icon {
   width: 14px;
   height: 14px;
 }
 .selected .selection-icon {
-  background: #587649;
+  background: #b63724;
   color: #fff;
-  border-color: #587649;
+  border-color: #b63724;
 }
 .offer-toggle h3 {
   font-size: 14px;
@@ -674,7 +674,7 @@ h1 em {
   letter-spacing: -0.6px;
 }
 .prices s {
-  color: #727869;
+  color: #6b5b65;
   font-size: 12px;
 }
 .unit-note {
@@ -688,9 +688,9 @@ h1 em {
 }
 .ingredient-select select {
   font-size: 12px;
-  color: #53634b;
+  color: #6b5b65;
   border: 0;
-  border-top: 1px solid #dce2d0;
+  border-top: 1px solid #e7d9d3;
   background: transparent;
   width: 100%;
   padding: 8px 0 2px;
@@ -716,11 +716,11 @@ h1 em {
   font-weight: 600;
   border: 1px solid var(--line);
   border-radius: 5px;
-  background: #f9faf4;
+  background: #fffdfb;
   margin-top: 10px;
 }
 .show-more:hover {
-  background: #edf1e2;
+  background: #fdf0e8;
 }
 .show-more span {
   margin-left: 10px;
@@ -753,7 +753,7 @@ h1 em {
   margin-bottom: 20px;
 }
 .recipe-heading h2 {
-  font: 500 32px/1.2 var(--serif);
+  font: 700 32px/1.2 var(--display);
   letter-spacing: -1px;
 }
 .recipe-heading > .muted {
@@ -766,9 +766,9 @@ h1 em {
   flex-wrap: wrap;
 }
 .filters > label {
-  border: 1px solid #d3d9cb;
+  border: 1px solid #e7d9d3;
   border-radius: 4px;
-  background: #fcfcf7;
+  background: #fffdfb;
   min-height: 39px;
   display: flex;
   align-items: center;
@@ -785,7 +785,7 @@ h1 em {
   padding: 8px 10px;
 }
 .check-label input {
-  accent-color: var(--green);
+  accent-color: var(--ink);
   width: 15px;
   height: 15px;
   margin: 0;
@@ -798,7 +798,7 @@ h1 em {
 .filters select {
   border: 0;
   background: transparent;
-  color: var(--green);
+  color: var(--ink);
   font-size: 13px;
   padding: 9px 10px;
   max-width: 100%;
@@ -818,7 +818,7 @@ h1 em {
   gap: 14px;
 }
 .recipe-card {
-  background: #fffef9;
+  background: #fffdfb;
   border: 1px solid var(--line);
   border-radius: 7px;
   padding: 20px 20px 0;
@@ -834,7 +834,7 @@ h1 em {
   left: 0;
   right: 0;
   height: 3px;
-  background: #9baa7a;
+  background: #b63724;
 }
 .recipe-card.yellow:before {
   background: #d9bb6b;
@@ -858,8 +858,8 @@ h1 em {
   gap: 4px;
   font-size: 11px;
   font-weight: 600;
-  background: #edf2e2;
-  color: #4c6d3d;
+  background: #f0ecf8;
+  color: #4d3d80;
   padding: 5px 7px;
   border-radius: 3px;
 }
@@ -880,7 +880,7 @@ h1 em {
   height: 13px;
 }
 .recipe-card h3 {
-  font: 500 25px/1.2 var(--serif);
+  font: 700 25px/1.2 var(--display);
   letter-spacing: -0.6px;
   margin-bottom: 11px;
 }
@@ -901,14 +901,14 @@ h1 em {
   gap: 3px;
   align-items: center;
   font-size: 11px;
-  color: #53723f;
+  color: #4d3d80;
 }
 .matched-ingredients .icon {
   width: 12px;
   height: 12px;
 }
 .recipe-card-bottom {
-  border-top: 1px solid #e8e9df;
+  border-top: 1px solid #e7d9d3;
   padding: 13px 0;
   margin-top: auto;
   display: flex;
@@ -939,17 +939,17 @@ h1 em {
   text-underline-offset: 3px;
 }
 .empty {
-  border: 1px dashed #c8cfbd;
+  border: 1px dashed #e7d9d3;
   border-radius: 6px;
-  background: #f0f3e8;
+  background: #fdf0e8;
   padding: 25px;
   line-height: 1.6;
   color: var(--muted);
 }
 .empty h2,
 .empty h3 {
-  color: var(--green);
-  font-family: var(--serif);
+  color: var(--ink);
+  font-family: var(--display);
   font-weight: 500;
   margin: 12px 0;
   font-size: 26px;
@@ -988,7 +988,7 @@ h1 em {
   width: 60px;
   height: 60px;
   flex-shrink: 0;
-  background: var(--olive);
+  background: var(--soft);
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -998,7 +998,7 @@ h1 em {
   height: 27px;
 }
 .closing-note h2 {
-  font: 500 24px/1.25 var(--serif);
+  font: 700 24px/1.25 var(--display);
   letter-spacing: -0.5px;
 }
 .closing-note p {
@@ -1055,9 +1055,9 @@ h1 em {
   display: none !important;
 }
 dialog {
-  color: var(--green);
-  background: #fcfbf6;
-  border: 1px solid #c8cfbd;
+  color: var(--ink);
+  background: #fff8f3;
+  border: 1px solid #e7d9d3;
   border-radius: 10px;
   padding: 42px;
   max-height: 90vh;
@@ -1065,7 +1065,7 @@ dialog {
   box-shadow: 0 20px 80px #0003;
 }
 dialog::backdrop {
-  background: #172a20aa;
+  background: #2c243899;
   backdrop-filter: blur(3px);
 }
 .recipe-dialog {
@@ -1078,7 +1078,7 @@ dialog::backdrop {
   position: absolute;
   top: 14px;
   right: 15px;
-  background: #ecefe3;
+  background: #f0ecf8;
   border-radius: 50%;
   width: 35px;
   height: 35px;
@@ -1086,7 +1086,7 @@ dialog::backdrop {
   place-items: center;
 }
 dialog h2 {
-  font: 500 40px/1.15 var(--serif);
+  font: 700 40px/1.15 var(--display);
   letter-spacing: -1.1px;
   margin: 12px 0 17px;
 }
@@ -1112,7 +1112,7 @@ dialog h3 {
   font-weight: 600;
   letter-spacing: 0.7px;
   text-transform: uppercase;
-  color: #778166;
+  color: #6b5b65;
   margin: 23px 0 10px;
 }
 .shopping-list ul {
@@ -1122,7 +1122,7 @@ dialog h3 {
 }
 .shopping-list li {
   padding: 9px 0;
-  border-bottom: 1px solid #e5e7dc;
+  border-bottom: 1px solid #e7d9d3;
   font-size: 14px;
   line-height: 1.6;
 }
@@ -1133,7 +1133,7 @@ dialog h3 {
   cursor: pointer;
 }
 .shopping-list input {
-  accent-color: var(--green);
+  accent-color: var(--ink);
 }
 .shopping-list label:has(input:checked) span {
   text-decoration: line-through;
@@ -1142,7 +1142,7 @@ dialog h3 {
 .detail-product {
   display: block;
   font-size: 11px;
-  color: #5c7050;
+  color: #6b5b65;
   margin: 4px 0 0 23px;
 }
 .list-note {
@@ -1161,17 +1161,17 @@ dialog h3 {
   line-height: 1.8;
 }
 .method li::marker {
-  font-family: var(--serif);
+  font-family: var(--display);
   font-size: 18px;
-  color: #788958;
+  color: #b63724;
 }
 .recipe-caution {
-  background: #f0ecdf;
+  background: #fbe8df;
   border-radius: 5px;
   padding: 14px;
   font-size: 12px;
   line-height: 1.7;
-  color: #70654e;
+  color: #783928;
 }
 .dialog-actions {
   display: flex;
@@ -1183,8 +1183,8 @@ dialog h3 {
   padding-top: 24px;
 }
 .secondary-button {
-  border: 1px solid #c8cfbd;
-  background: #f1f4e8;
+  border: 1px solid #e7d9d3;
+  background: #fdf0e8;
   padding: 14px 18px;
   border-radius: 5px;
   min-height: 48px;
@@ -1632,16 +1632,16 @@ dialog h3 {
   font-size: 13px;
 }
 .store-number {
-  color: #566b48;
+  color: #6b5b65;
 }
 .prices s {
-  color: #616853;
+  color: #6b5b65;
 }
 .shopping-list h4 {
-  color: #626f51;
+  color: #6b5b65;
 }
 .store-pin span {
-  background: #5f7547;
+  background: #4d3d80;
 }
 @media (max-width: 380px) {
   .site-header {
@@ -1708,7 +1708,7 @@ dialog h3 {
 .selection-caption {
   font-size: 11px;
   letter-spacing: 1px;
-  color: #56674b;
+  color: #6b5b65;
   font-weight: 700;
 }
 .product-chips {
@@ -1718,8 +1718,8 @@ dialog h3 {
   margin-top: 10px;
 }
 .product-chips span {
-  background: #e7edda;
-  border: 1px solid #ccd7bd;
+  background: #fbe8df;
+  border: 1px solid #e7d9d3;
   padding: 8px 11px;
   border-radius: 5px;
   font-size: 14px;
@@ -1739,10 +1739,10 @@ dialog h3 {
 }
 #extra-pantry {
   width: min(100%, 480px);
-  border: 1px solid #cbd0c3;
+  border: 1px solid #e7d9d3;
   border-radius: 5px;
   padding: 11px 12px;
-  background: #fffef9;
+  background: #fffdfb;
   font-size: 15px;
 }
 .pantry-details p {
@@ -1779,7 +1779,7 @@ dialog h3 {
   line-height: 1.7;
 }
 .recipe-provenance {
-  color: #3f5f2e;
+  color: #4d3d80;
 }
 .recipe-provenance p,
 .recipe-extras p {
@@ -1811,5 +1811,237 @@ dialog h3 {
   }
   .generated-card h3 {
     font-size: 29px;
+  }
+}
+
+/* Nærmad: a warm, bold kitchen palette of tomato, porcelain and plum. */
+.site-header {
+  border-bottom: 2px solid var(--ink);
+}
+.brand {
+  letter-spacing: -1.5px;
+}
+.compact-hero h1 {
+  font-weight: 700;
+  letter-spacing: -2.8px;
+}
+.eyebrow {
+  letter-spacing: 1.3px;
+}
+.mode-picker {
+  border: 0;
+  padding: 0;
+  margin: 0 0 28px;
+  min-width: 0;
+}
+.mode-picker legend {
+  font-size: 23px;
+  font-weight: 700;
+  margin-bottom: 15px;
+  letter-spacing: -0.5px;
+}
+.mode-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.mode-options label {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  border: 1px solid #cfbdc4;
+  border-radius: 12px;
+  padding: 17px;
+  background: #fffdfb;
+  cursor: pointer;
+}
+.mode-options label:has(input:checked) {
+  background: #f0ecf8;
+  border-color: #4d3d80;
+  box-shadow: inset 0 0 0 1px #4d3d80;
+}
+.mode-options input {
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  accent-color: #4d3d80;
+  flex-shrink: 0;
+}
+.mode-options strong {
+  font-size: 16px;
+  display: block;
+  line-height: 1.4;
+}
+.mode-options small {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 5px;
+}
+#recipes.inspiration-mode {
+  border: 0;
+  padding-top: 0;
+  margin-top: 0;
+}
+.inspiration-mode .recipe-heading h2 {
+  font-size: clamp(25px, 3vw, 34px);
+}
+.inspiration-source {
+  border-left: 3px solid #b63724;
+  padding: 4px 0 4px 16px;
+}
+.inspiration-source p {
+  color: var(--muted);
+  line-height: 1.65;
+  font-size: 14px;
+  margin-top: 6px;
+}
+.ideas-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+}
+.idea-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fffdfb;
+  padding: 20px;
+  border-top: 4px solid #b63724;
+}
+.idea-card:nth-child(2) {
+  border-top-color: #4d3d80;
+}
+.idea-card:nth-child(3) {
+  border-top-color: #ad6a16;
+}
+.idea-top {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 17px;
+}
+.idea-number {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #9b3021;
+}
+.idea-card h3 {
+  font: 700 23px/1.2 var(--display);
+  letter-spacing: -0.6px;
+  margin-bottom: 12px;
+  overflow-wrap: anywhere;
+}
+.idea-description {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+.idea-products {
+  margin: 21px 0 12px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.idea-products strong,
+.idea-extras strong {
+  font-weight: 600;
+}
+.idea-products ul {
+  padding-left: 16px;
+  margin: 7px 0 0;
+}
+.idea-products li {
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+}
+.idea-extras {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+.idea-card .secondary-button {
+  margin-top: auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+  padding: 12px;
+  background: #f0ecf8;
+  border-color: #d5c9e7;
+  color: #3f306a;
+}
+.idea-card .secondary-button:hover {
+  background: #e5ddf2;
+}
+.ideas-note {
+  grid-column: 1/-1;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0 0 18px;
+}
+.generated-card {
+  border-radius: 14px;
+}
+.inspiration-mode .generated-card {
+  margin-top: 25px;
+}
+.primary-button,
+.secondary-button {
+  border-radius: 8px;
+}
+.offer-card,
+.store-card {
+  border-radius: 9px;
+}
+.product-chips span {
+  border-radius: 8px;
+}
+.filters > label {
+  border-radius: 7px;
+}
+@media (max-width: 1120px) {
+  .ideas-list {
+    grid-template-columns: 1fr;
+  }
+  .idea-card h3 {
+    font-size: 25px;
+  }
+  .mode-options {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+}
+@media (max-width: 760px) {
+  .compact-hero h1 {
+    font-size: 44px;
+    letter-spacing: -2px;
+  }
+  .mode-picker legend {
+    font-size: 22px;
+  }
+  .mode-options label {
+    padding: 14px;
+  }
+  .idea-card {
+    padding: 20px;
+  }
+  .recipe-heading h2 {
+    font-size: 27px;
+  }
+  .filters select,
+  .filters .check-label {
+    font-size: 14px;
+  }
+  .generation-intro {
+    font-size: 15px;
   }
 }
