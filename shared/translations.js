@@ -1,6 +1,8 @@
 // Danish is the default and the source key. Values are trusted application copy;
 // store names, product labels and model output never pass through a DOM translator.
 export const english = {
+  "Opskriften mangler tydelige mængder eller enheder. Prøv at lave en ny opskrift.":
+    "The recipe is missing clear quantities or units. Please generate a new recipe.",
   "Nedsatte varer i alt": "Discounted products total",
   "Nedsatte varer · anslået total": "Discounted products · estimated total",
   "Nedsatte varer · delsum": "Discounted products · subtotal",

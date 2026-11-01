@@ -243,6 +243,11 @@ There is no regex-based conversion of prepared dishes into raw ingredients. Prom
 ask the model to respect the actual product form, decline unclear/incompatible inputs
 and distinguish pantry items from extras. These are instructions, not quality guarantees.
 Recipe quantities are generated for the requested servings, not multiplied locally.
+The model must supply separate numeric amounts and explicit units. Both server and
+browser validate quantities; a bare number such as “20” is rejected rather than
+silently interpreted as grams. Common instructions such as “to taste” remain valid.
+The API formats the structured values as Danish/English strings for display and
+existing clients. These checks establish quantity format, not culinary correctness.
 Prices come from the fetched offers, not the language model. Cost calculations use
 explicit quantities where available and disclose assumptions otherwise; they never
 price the additional ingredients or pantry items. Stock is not guaranteed at arrival.

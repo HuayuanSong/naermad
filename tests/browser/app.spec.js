@@ -857,3 +857,44 @@ test("English costs identify a one-pack assumption and accept a corrected quanti
     "Quantity entered by you",
   );
 });
+
+test("unitless model amounts never reach the recipe or cost panel; structured amounts display units in the list and download", async ({
+  page,
+}) => {
+  let quantity = "20",
+    calls = 0;
+  await connectFixture(page, (r, input) => {
+    calls++;
+    const value = generatedEnglish(input);
+    value.ingredients[0].quantity = quantity;
+    return r.fulfill({ json: value });
+  });
+  await page.goto("/");
+  await selectBroccoli(page);
+  await page.locator("#language").selectOption("en");
+  for (const invalid of ["20", "150"]) {
+    quantity = invalid;
+    await page.locator("#generate").click();
+    await expect(page.locator("#generation-status")).toContainText(
+      "missing clear quantities or units",
+    );
+    await expect(page.locator("#generate")).toHaveAttribute(
+      "aria-busy",
+      "false",
+    );
+    await expect(page.locator(".recipe-card")).toHaveCount(0);
+    await expect(page.locator(".cost-summary")).toHaveCount(0);
+  }
+  expect(calls).toBe(2);
+  quantity = { amount: 150, unit: "g" };
+  await page.locator("#generate").click();
+  await page.locator("[data-recipe]").click();
+  await expect(page.locator(".shopping-list")).toContainText("150 g broccoli");
+  const downloadPromise = page.waitForEvent("download");
+  await page.locator("#download-list").click();
+  const stream = await (await downloadPromise).createReadStream(),
+    chunks = [];
+  for await (const chunk of stream) chunks.push(chunk);
+  expect(Buffer.concat(chunks).toString()).toContain("150 g broccoli");
+  expect(calls).toBe(3);
+});

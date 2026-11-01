@@ -1,7 +1,7 @@
 // Cost of the discounted products to BUY. Extras and pantry items are excluded.
 // Quantities come from the recipe and explicit pack labels, never model-made prices.
 const numberPattern = String.raw`(?:\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:[.,]\d+)?|[½¼¾])`;
-const unitPattern = String.raw`(?:kilograms?|kilogram|kg|grams?|gram|gr|g|millilit(?:re|er)s?|ml|cl|dl|lit(?:re|er)s?|liter|l|stk\.?|stykker|pieces?|pcs\.?|heads?|(?:hoveder|hoved)|æg|eggs?)`;
+const unitPattern = String.raw`(?:kilograms?|kilogram|kg|grams?|gram|gr|g|millilit(?:re|er)s?|ml|cl|dl|lit(?:re|er)s?|liter|l|stk\.?|stykker|pieces?|pcs?\.?|heads?|(?:hoveder|hoved)|æg|eggs?)`;
 const amountRegex = new RegExp(
   `^(${numberPattern})\\s*(${unitPattern})\\.?$`,
   "iu",

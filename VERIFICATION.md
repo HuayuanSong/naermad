@@ -2,13 +2,13 @@
 
 ## Automated and visual checks
 
-- **35 API/data/generation/cost tests passed.** Coverage includes active markdown filtering,
+- **39 API/data/generation/cost tests passed.** Coverage includes active markdown filtering,
   coordinates, deduplication, Salling request coalescing/cache/errors, bounded generation
   requests, removal of location/credential fields, product and pantry references,
   requested servings/time, invalid model output, both inference adapters, CORS,
   request size limits, burst throttling, sanitized upstream errors, free-quota errors,
   opaque product labels and the narrow raw-meat-washing instruction check.
-- **18 Chromium browser tests passed.** No automatic product selection or generation;
+- **19 Chromium browser tests passed.** No automatic product selection or generation;
   an explicit click sends only selected products/preferences. Tests cover generated
   result provenance, extras, portions, another-idea requests, downloads, cancellation,
   stale response invalidation, missing endpoints, malformed results and provider errors,
@@ -246,3 +246,30 @@ used one stock request and one model request; editing quantities used neither.
 No page errors or mobile dialog overflow were observed. An earlier single-cheese
 probe returned a normal model refusal, so a cheese-and-bread selection was used for
 the completed cost check. No model or inference-service changes were deployed.
+
+## Explicit ingredient units
+
+A reported recipe displayed bare quantities (20 butter / 150 sauce). The previous
+validator accepted any nonempty quantity string; neither number established its unit.
+The original recipe is not retained server-side and cannot be reconstructed from logs.
+
+Prompt `naermad-generated-v6` requires a structured quantity with a numeric amount
+and an enumerated unit. The Worker normalizes it to a localized display string, keeping
+the existing API compatible. Both Worker and browser reject bare numbers, missing or
+unknown units, invalid amounts and contradictory special-unit values. They do not
+infer grams from an ingredient name. Explicit counts, fractions and legitimate
+“to taste” / packet-instruction quantities remain supported. No automatic retry or
+additional inference request was added.
+
+Regression checks cover both reported numbers, malformed structures, every supported
+unit's round trip through server/browser validation in Danish and English, localized
+errors, recipe-cost compatibility and the actual UI/download path. A rejected quantity
+cannot produce a recipe card or cost panel. These are format checks, not proof that a
+model chose appropriate quantities or correct cooking instructions.
+
+A small live Gemma 4 pilot used butter, potatoes and onion béarnaise as test inputs
+in English and Danish. Both responses supplied structured amount/unit objects for
+all measured ingredients and normalized correctly, including `30 g` butter and
+`150 g` sauce in the Danish sample. Both retained explicit “to taste” seasoning
+instructions. This was a new generation, not a reconstruction of the reported recipe.
+The two requests completed in 12.5 s and 15.1 s; the existing token cap was retained.
