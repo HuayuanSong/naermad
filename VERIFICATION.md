@@ -158,3 +158,28 @@ Cloudflare Worker**, with no intercepted service responses:
 
 This confirms the public integration at the time of testing. Store availability,
 latency and future model responses vary; it does not establish general recipe accuracy.
+
+
+## Public inspiration release verification
+
+[Deployment checks](https://github.com/HuayuanSong/naermad/actions/runs/41345698996)
+passed for application commit `e3bbeec`. The published theme and both recipe modes
+were then checked with actual GitHub Pages assets, Photon, Salling and Workers AI;
+no service responses were intercepted.
+
+- Rådhuspladsen, Copenhagen, 3 km: 17 stores and 333 raw clearance records. The first
+  store showed 26 accepted offers, with zero selected products and zero recipes.
+- Switched to **Lad AI vælge**, enabled vegetarian, and explicitly requested suggestions.
+  One call returned three ideas in **7.5 seconds** using subsets of the store's real
+  products. No full recipe was generated before choosing a suggestion.
+- Selected “Luksus ostebord på rugbrød”. Its full recipe returned in **12.2 seconds**,
+  kept the exact title, used the three chosen products, and included its expected
+  extra purchases (butter and grapes/jam). Both requests returned HTTP 200.
+- Total network use: **one Salling inventory call, one idea call, one recipe call**.
+  Changing mode and choosing a dish caused no additional inventory requests.
+- The automatically opened recipe dialog was inspected at desktop and 390-pixel mobile
+  widths. No page errors or horizontal overflow were observed. The request bodies
+  contained no address, coordinates, store name, prices or Salling key.
+
+These are time-specific integration observations, not guaranteed latency, stock or
+recipe quality. The manual route remains covered by the regression browser suite.
