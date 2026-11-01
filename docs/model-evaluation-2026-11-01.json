@@ -1,0 +1,652 @@
+{
+  "date": "2026-11-01",
+  "model": "@cf/google/gemma-4-26b-a4b-it",
+  "promptVersion": "naermad-generated-v3",
+  "thinking": false,
+  "method": "Small manually inspected pilot using synthetic shopping inputs and real Cloudflare model responses; one sample per case. Not a benchmark, accuracy estimate or kitchen validation. Responses are evidence only and never runtime recipe fallbacks.",
+  "samples": [
+    {
+      "name": "vegetarian-dairy",
+      "expected": "ok",
+      "input": {
+        "products": [
+          {
+            "id": "p1",
+            "name": "Broccoli 1 stk."
+          },
+          {
+            "id": "p2",
+            "name": "Madlavningsfløde 250 ml"
+          }
+        ],
+        "vegetarian": true,
+        "servings": 2,
+        "maxMinutes": 30,
+        "pantry": [
+          "olie",
+          "salt",
+          "sort peber",
+          "vand",
+          "pasta"
+        ],
+        "variant": 0
+      },
+      "httpStatus": 200,
+      "latencyMs": 14884,
+      "usage": {
+        "prompt_tokens": 855,
+        "completion_tokens": 631,
+        "total_tokens": 1486,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 24.98181915283203
+      },
+      "recipe": {
+        "status": "ok",
+        "title": "Cremet pasta med broccoli og flødesovs",
+        "description": "En hurtig og cremet vegetarisk ret, hvor broccolien giver både struktur og farve til den fyldige flødesovs.",
+        "servings": 2,
+        "minutes": 20,
+        "ingredients": [
+          {
+            "name": "Pasta",
+            "quantity": "200 g",
+            "productId": null,
+            "pantryItem": "pasta"
+          },
+          {
+            "name": "Broccoli",
+            "quantity": "1 stk.",
+            "productId": "p1",
+            "pantryItem": null
+          },
+          {
+            "name": "Madlavningsfløde",
+            "quantity": "200 ml",
+            "productId": "p2",
+            "pantryItem": null
+          },
+          {
+            "name": "Olie",
+            "quantity": "1 spsk.",
+            "productId": null,
+            "pantryItem": "olie"
+          },
+          {
+            "name": "Salt",
+            "quantity": "efter smag",
+            "productId": null,
+            "pantryItem": "salt"
+          },
+          {
+            "name": "Sort peber",
+            "quantity": "efter smag",
+            "productId": null,
+            "pantryItem": "sort peber"
+          },
+          {
+            "name": "Vand",
+            "quantity": "efter pakkens anvisning",
+            "productId": null,
+            "pantryItem": "vand"
+          }
+        ],
+        "steps": [
+          "Bring en gryde med vand til kogning efter pakkens anvisning på pastaen. Tilsæt salt.",
+          "Skær broccolien i små buketter. Du kan også skære stokken i tynde skiver for at undgå madspild.",
+          "Kog pastaen efter pakkens anvisning. Tilsæt broccolibuketterne til pastaen de sidste 4-5 minutter af kogetiden, så de bliver møre, men stadig har bid.",
+          "Hæld vandet fra pasta og broccoli i et dørslag.",
+          "Varm en pande op med olie, og tilsæt madlavningsfløden. Lad den simre forsigtigt i et par minutter, indtil den tykner let.",
+          "Vend den kogte pasta og broccoli ned i flødesovsen på panden.",
+          "Smag til med salt og sort peber efter smag, og server straks."
+        ]
+      },
+      "expectedStatusMatched": true
+    },
+    {
+      "name": "raw-chicken",
+      "expected": "ok",
+      "input": {
+        "products": [
+          {
+            "id": "p1",
+            "name": "Kyllingebrystfilet 450 g"
+          },
+          {
+            "id": "p2",
+            "name": "Peberfrugter 3 stk."
+          }
+        ],
+        "vegetarian": false,
+        "servings": 4,
+        "maxMinutes": 30,
+        "pantry": [
+          "olie",
+          "salt",
+          "sort peber",
+          "vand",
+          "ris"
+        ],
+        "variant": 0
+      },
+      "httpStatus": 200,
+      "latencyMs": 7055,
+      "usage": {
+        "prompt_tokens": 860,
+        "completion_tokens": 693,
+        "total_tokens": 1553,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 26.718181610107422
+      },
+      "recipe": {
+        "status": "ok",
+        "title": "Stegte kyllingestrimler med farverige peberfrugter og ris",
+        "description": "En hurtig og smagfuld hverdagsret med saftige kyllingestrimler og søde peberfrugter serveret på en bund af dampede ris.",
+        "servings": 4,
+        "minutes": 30,
+        "ingredients": [
+          {
+            "name": "Kyllingebrystfilet 450 g",
+            "quantity": "450 g",
+            "productId": "p1",
+            "pantryItem": null
+          },
+          {
+            "name": "Peberfrugter 3 stk.",
+            "quantity": "3 stk.",
+            "productId": "p2",
+            "pantryItem": null
+          },
+          {
+            "name": "ris",
+            "quantity": "300 g",
+            "productId": null,
+            "pantryItem": "ris"
+          },
+          {
+            "name": "vand",
+            "quantity": "efter pakkens anvisning",
+            "productId": null,
+            "pantryItem": "vand"
+          },
+          {
+            "name": "olie",
+            "quantity": "2 spsk.",
+            "productId": null,
+            "pantryItem": "olie"
+          },
+          {
+            "name": "salt",
+            "quantity": "efter smag",
+            "productId": null,
+            "pantryItem": "salt"
+          },
+          {
+            "name": "sort peber",
+            "quantity": "efter smag",
+            "productId": null,
+            "pantryItem": "sort peber"
+          }
+        ],
+        "steps": [
+          "Bring vand i kog i en gryde efter pakkens anvisning og kog risene færdige. Sæt dem til side.",
+          "Dup kyllingebrystfilet tørt med køkkenrulle. Skær kyllingen i mundrette strimler.",
+          "Skyl peberfrugterne grundigt, fjern kernehuse og skær dem i tynde strimler.",
+          "Opvarm olie i en stor pande ved middel varme.",
+          "Tilsæt kyllingestrimlerne til panden. Steg dem i ca. 8-10 minutter, indtil de er gennemstegte og har nået en kernetemperatur på mindst 75 °C.",
+          "Tilsæt peberfrugtstrimlerne til panden sammen med kyllingen og steg videre i ca. 5 minutter, indtil peberfrugterne er møre, men stadig har bid.",
+          "Smag til med salt og sort peber.",
+          "Anret de stegte kyllingestrimler og peberfrugter ovenpå de kogte ris og server straks."
+        ]
+      },
+      "expectedStatusMatched": true
+    },
+    {
+      "name": "smoked-salmon",
+      "expected": "ok",
+      "input": {
+        "products": [
+          {
+            "id": "p1",
+            "name": "Røget laks 150 g"
+          },
+          {
+            "id": "p2",
+            "name": "Rugbrød 500 g"
+          }
+        ],
+        "vegetarian": false,
+        "servings": 2,
+        "maxMinutes": 20,
+        "pantry": [
+          "salt",
+          "sort peber",
+          "citron"
+        ],
+        "variant": 0
+      },
+      "httpStatus": 200,
+      "latencyMs": 9257,
+      "usage": {
+        "prompt_tokens": 853,
+        "completion_tokens": 434,
+        "total_tokens": 1287,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 19.59090805053711
+      },
+      "recipe": {
+        "status": "ok",
+        "title": "Røget laks på mørkt rugbrød med citron",
+        "description": "En enkel og klassisk anretning, hvor den rige smag fra den røgede laks komplementeres af frisk citron og sprødt rugbrød.",
+        "servings": 2,
+        "minutes": 10,
+        "ingredients": [
+          {
+            "name": "Røget laks",
+            "quantity": "150 g",
+            "productId": "p1",
+            "pantryItem": null
+          },
+          {
+            "name": "Rugbrød",
+            "quantity": "4 skiver",
+            "productId": "p2",
+            "pantryItem": null
+          },
+          {
+            "name": "Citron",
+            "quantity": "½ stk.",
+            "productId": null,
+            "pantryItem": "citron"
+          },
+          {
+            "name": "Salt",
+            "quantity": "efter smag",
+            "productId": null,
+            "pantryItem": "salt"
+          },
+          {
+            "name": "Sort peber",
+            "quantity": "efter smag",
+            "productId": null,
+            "pantryItem": "sort peber"
+          }
+        ],
+        "steps": [
+          "Skær to skiver rugbrød til hver person.",
+          "Pres saften fra en halv citron i en lille skål.",
+          "Anret de 150 g røget laks i stykker eller skiver oven på rugbrødet.",
+          "Dryp citronsaft over laksen for at give friskhed.",
+          "Smag til med salt og sort peber efter behov.",
+          "Server straks."
+        ]
+      },
+      "expectedStatusMatched": true
+    },
+    {
+      "name": "dry-legumes-short-time",
+      "expected": "cannot_create",
+      "input": {
+        "products": [
+          {
+            "id": "p1",
+            "name": "Tørrede kikærter 500 g"
+          },
+          {
+            "id": "p2",
+            "name": "Babyspinat 150 g"
+          }
+        ],
+        "vegetarian": true,
+        "servings": 2,
+        "maxMinutes": 20,
+        "pantry": [
+          "olie",
+          "salt",
+          "vand"
+        ],
+        "variant": 0
+      },
+      "httpStatus": 200,
+      "latencyMs": 1391,
+      "usage": {
+        "prompt_tokens": 853,
+        "completion_tokens": 102,
+        "total_tokens": 955,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 10.53636360168457
+      },
+      "recipe": {
+        "status": "cannot_create",
+        "reason": "Tørrede kikærter kræver udblødning og lang tids kogning, hvilket gør det umuligt at tilberede retten inden for de angivne 20 minutter."
+      },
+      "expectedStatusMatched": true
+    },
+    {
+      "name": "nonfood",
+      "expected": "cannot_create",
+      "input": {
+        "products": [
+          {
+            "id": "p1",
+            "name": "Vaskemiddel 1 liter"
+          }
+        ],
+        "vegetarian": false,
+        "servings": 2,
+        "maxMinutes": 30,
+        "pantry": [
+          "olie",
+          "salt",
+          "vand"
+        ],
+        "variant": 0
+      },
+      "httpStatus": 200,
+      "latencyMs": 2150,
+      "usage": {
+        "prompt_tokens": 831,
+        "completion_tokens": 85,
+        "total_tokens": 916,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 9.872727394104004
+      },
+      "recipe": {
+        "status": "cannot_create",
+        "reason": "Vaskemiddel er ikke en spiselig ingrediens og kan ikke bruges i en madopskrift."
+      },
+      "expectedStatusMatched": true
+    },
+    {
+      "name": "vegetarian-meat-conflict",
+      "expected": "cannot_create",
+      "input": {
+        "products": [
+          {
+            "id": "p1",
+            "name": "Kyllingebrystfilet 450 g"
+          }
+        ],
+        "vegetarian": true,
+        "servings": 2,
+        "maxMinutes": 30,
+        "pantry": [
+          "olie",
+          "salt",
+          "vand"
+        ],
+        "variant": 0
+      },
+      "httpStatus": 200,
+      "latencyMs": 2574,
+      "usage": {
+        "prompt_tokens": 836,
+        "completion_tokens": 92,
+        "total_tokens": 928,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 10.109090805053711
+      },
+      "recipe": {
+        "status": "cannot_create",
+        "reason": "Brugeren har valgt 'vegetarian: true', men de valgte varer indeholder kyllingebrystfilet, hvilket er kød."
+      },
+      "expectedStatusMatched": true
+    },
+    {
+      "name": "extras-required",
+      "expected": "ok",
+      "input": {
+        "products": [
+          {
+            "id": "p1",
+            "name": "Champignon 250 g"
+          },
+          {
+            "id": "p2",
+            "name": "Madlavningsfløde 250 ml"
+          }
+        ],
+        "vegetarian": true,
+        "servings": 2,
+        "maxMinutes": 30,
+        "pantry": [
+          "olie",
+          "salt",
+          "sort peber",
+          "vand"
+        ],
+        "variant": 0
+      },
+      "httpStatus": 200,
+      "latencyMs": 9388,
+      "usage": {
+        "prompt_tokens": 854,
+        "completion_tokens": 518,
+        "total_tokens": 1372,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 21.89090919494629
+      },
+      "recipe": {
+        "status": "ok",
+        "title": "Cremet svampesovs med stegte champignoner",
+        "description": "En enkel og luksuriøs ret med masser af umami fra friske champignoner og en fløjlsblød flødesovs.",
+        "servings": 2,
+        "minutes": 20,
+        "ingredients": [
+          {
+            "name": "Champignon",
+            "quantity": "250 g",
+            "productId": "p1",
+            "pantryItem": null
+          },
+          {
+            "name": "Madlavningsfløde",
+            "quantity": "250 ml",
+            "productId": "p2",
+            "pantryItem": null
+          },
+          {
+            "name": "olie",
+            "quantity": "1 spsk",
+            "productId": null,
+            "pantryItem": "olie"
+          },
+          {
+            "name": "salt",
+            "quantity": "efter smag",
+            "productId": null,
+            "pantryItem": "salt"
+          },
+          {
+            "name": "sort peber",
+            "quantity": "efter smag",
+            "productId": null,
+            "pantryItem": "sort peber"
+          }
+        ],
+        "steps": [
+          "Rens champignonerne for jord og dup dem tørre med et stykke køkkenrulle. Skær dem i skiver eller halve.",
+          "Varm olien op i en pande ved middel varme.",
+          "Tilsæt champignonerne til panden og steg dem, indtil de har afgivet deres væske og er blevet gyldne.",
+          "Hæld madlavningsfløden ved de stegte champignoner.",
+          "Lad sovsen simre ved svag varme i ca. 5-8 minutter, indtil den er tyknet og har den ønskede konsistens.",
+          "Smag til med salt og sort peber efter smag.",
+          "Server sovsen varm, eventuelt sammen med noget brød eller pasta (ikke inkluderet)."
+        ]
+      },
+      "expectedStatusMatched": true,
+      "review": "Valid mushroom sauce; not a complete meal. The case name is descriptive, not an assertion that extras were required."
+    },
+    {
+      "name": "prepared-chicken-salad",
+      "expected": "ok",
+      "input": {
+        "products": [
+          {
+            "id": "p1",
+            "name": "Salling kyllingesalat 200 g"
+          },
+          {
+            "id": "p2",
+            "name": "Agurk 1 stk."
+          }
+        ],
+        "vegetarian": false,
+        "servings": 2,
+        "maxMinutes": 20,
+        "pantry": [
+          "rugbrød",
+          "salt",
+          "sort peber"
+        ],
+        "variant": 0
+      },
+      "httpStatus": 200,
+      "latencyMs": 9078,
+      "usage": {
+        "prompt_tokens": 853,
+        "completion_tokens": 437,
+        "total_tokens": 1290,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 19.672725677490234
+      },
+      "recipe": {
+        "status": "ok",
+        "title": "Frisk rugbrød med kyllingesalat og agurk",
+        "description": "En hurtig og let frokostret bestående af cremet kyllingesalat serveret på mørkt rugbrød med sprøde agurkeskiver.",
+        "servings": 2,
+        "minutes": 10,
+        "ingredients": [
+          {
+            "name": "Salling kyllingesalat 200 g",
+            "quantity": "200 g",
+            "productId": "p1",
+            "pantryItem": null
+          },
+          {
+            "name": "Agurk",
+            "quantity": "1/2 stk.",
+            "productId": "p2",
+            "pantryItem": null
+          },
+          {
+            "name": "rugbrød",
+            "quantity": "4 skiver",
+            "productId": null,
+            "pantryItem": "rugbrød"
+          },
+          {
+            "name": "salt",
+            "quantity": "efter smag",
+            "productId": null,
+            "pantryItem": "salt"
+          },
+          {
+            "name": "sort peber",
+            "quantity": "efter smag",
+            "productId": null,
+            "pantryItem": "sort peber"
+          }
+        ],
+        "steps": [
+          "Skær agurken i tynde skiver.",
+          "Anret to skiver rugbrød per person på en tallerken.",
+          "Fordel Salling kyllingesalat jævnt ud over rugbrødet.",
+          "Placer agurkeskiverne ovenpå kyllingesalaten.",
+          "Smag til med salt og sort peber efter behov.",
+          "Server straks."
+        ]
+      },
+      "expectedStatusMatched": true
+    },
+    {
+      "name": "unclear-product",
+      "expected": "cannot_create",
+      "input": {
+        "products": [
+          {
+            "id": "p1",
+            "name": "SF BP M. 250G"
+          }
+        ],
+        "vegetarian": false,
+        "servings": 2,
+        "maxMinutes": 30,
+        "pantry": [
+          "olie",
+          "salt",
+          "vand"
+        ],
+        "variant": 0
+      },
+      "httpStatus": 200,
+      "latencyMs": 17084,
+      "usage": {
+        "prompt_tokens": 833,
+        "completion_tokens": 397,
+        "total_tokens": 1230,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "neurons": 18.399999618530273
+      },
+      "recipe": {
+        "status": "ok",
+        "title": "Stegt oksekød med sprøde detaljer",
+        "description": "En enkel og hurtig ret, hvor oksekødet steges gyldent og serveres med fokus på kødets naturlige smag.",
+        "servings": 2,
+        "minutes": 20,
+        "ingredients": [
+          {
+            "name": "SF BP M. 250G",
+            "quantity": "250 g",
+            "productId": "p1",
+            "pantryItem": null
+          },
+          {
+            "name": "olie",
+            "quantity": "2 spsk",
+            "productId": null,
+            "pantryItem": "olie"
+          },
+          {
+            "name": "salt",
+            "quantity": "efter smag",
+            "productId": null,
+            "pantryItem": "salt"
+          },
+          {
+            "name": "peber",
+            "quantity": "efter smag",
+            "productId": null,
+            "pantryItem": null
+          }
+        ],
+        "steps": [
+          "Tag kødet ud af køleskabet og dup det tørt med køkkenrulle.",
+          "Opvarm en pande ved middel varme med olie.",
+          "Krydr kødet med salt og peber efter smag.",
+          "Læg kødet på den varme pande og steg det, indtil det er gennemstegt og har en kernetemperatur på mindst 75 °C.",
+          "Lad kødet hvile i et par minutter før servering."
+        ]
+      },
+      "expectedStatusMatched": false,
+      "review": "Failed: invented beef from an opaque label. Deployed request validation now rejects this label before inference (live HTTP 400 verified). This does not resolve every ambiguous product name."
+    }
+  ]
+}

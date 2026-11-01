@@ -1,12 +1,13 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "naermad-recipes",
+  "account_id": "0bd8d9ef9102676df70229fe0d83f223",
   "main": "generation/worker.js",
   "compatibility_date": "2026-11-01",
   "ai": { "binding": "AI" },
   "vars": {
     "RECIPE_PROVIDER": "cloudflare",
-    "CF_MODEL": "@cf/qwen/qwen3-30b-a3b-fp8",
+    "CF_MODEL": "@cf/google/gemma-4-26b-a4b-it",
     "ALLOWED_ORIGINS": "https://huayuansong.github.io",
   },
   "ratelimits": [
@@ -16,5 +17,13 @@
       "simple": { "limit": 3, "period": 60 },
     },
   ],
-  "observability": { "enabled": false },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 0.1,
+      "invocation_logs": false,
+    },
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 },
+  },
 }

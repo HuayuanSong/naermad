@@ -241,3 +241,110 @@ test("worker enforces request validation, CORS, bounded body and burst limiter b
   assert.equal(res.status, 503);
   assert.equal((await res.text()).includes("secret upstream details"), false);
 });
+
+test("free quota and capacity exhaustion return useful errors without retrying or switching providers", async () => {
+  for (const [code, status, expected] of [
+    [3036, 429, "gratis opskriftskvote"],
+    [3040, 429, "optaget"],
+    [5035, 503, "gratis plan"],
+  ]) {
+    let calls = 0;
+    const response = await worker.fetch(req(), {
+      AI: {
+        run: async () => {
+          calls++;
+          throw new Error(
+            `${code}: provider suggests an upgrade with confidential details`,
+          );
+        },
+      },
+    });
+    assert.equal(response.status, status);
+    const body = await response.json();
+    assert.ok(body.error.includes(expected));
+    assert.equal(body.error.includes("confidential"), false);
+    assert.equal(calls, 1);
+    if (code === 3036) {
+      const wait = Number(response.headers.get("Retry-After"));
+      assert.ok(wait >= 1 && wait <= 86400);
+    }
+    if (code === 3040) assert.equal(response.headers.get("Retry-After"), "60");
+  }
+});
+
+test("rejects instructions to wash meat while allowing washing vegetables and explicit prohibitions", () => {
+  for (const step of [
+    "Skyl kyllingebrystfileterne under koldt vand.",
+    "Vask det rå kød og dup det tørt.",
+  ]) {
+    assert.throws(() =>
+      validateRecipe(
+        { ...recipe(), steps: [step, ...recipe().steps] },
+        input(),
+      ),
+    );
+  }
+  for (const step of [
+    "Skyl aldrig rå kylling.",
+    "Du må ikke skylle kyllingebrystet.",
+    "Skyl peberfrugterne og skær kyllingen i tern.",
+    "Vask hænder efter håndtering af kylling.",
+  ]) {
+    assert.equal(
+      validateRecipe({ ...recipe(), steps: [step, ...recipe().steps] }, input())
+        .status,
+      "ok",
+    );
+  }
+});
+test("selected Cloudflare model uses its documented structured output format and disables thinking", async () => {
+  let payload, model;
+  await generateRecipe(input(), {
+    AI: {
+      run: async (m, p) => {
+        model = m;
+        payload = p;
+        return { response: recipe() };
+      },
+    },
+  });
+  assert.equal(model, "@cf/google/gemma-4-26b-a4b-it");
+  assert.equal(payload.max_completion_tokens, 2400);
+  assert.equal(payload.chat_template_kwargs.enable_thinking, false);
+  assert.equal(payload.response_format.json_schema.strict, true);
+  assert.equal(payload.response_format.json_schema.schema.type, "object");
+});
+
+test("obvious abbreviated product codes are rejected before inference; short real food names remain usable", async () => {
+  for (const name of ["SF BP M. 250G", "SF 221B", "Salling BP M 250 g"])
+    assert.throws(
+      () => validateRequest({ ...input(), products: [{ id: "p1", name }] }),
+      /uklart navn/,
+    );
+  for (const name of [
+    "ØKO ÆG 6 STK",
+    "RIS 1 KG",
+    "TOFU 200G",
+    "Hakket oksekød 500 g",
+    "Røget laks",
+  ])
+    assert.equal(
+      validateRequest({ ...input(), products: [{ id: "p1", name }] })
+        .products[0].name,
+      name,
+    );
+  let calls = 0;
+  const response = await worker.fetch(
+    req({ ...input(), products: [{ id: "p1", name: "SF BP M. 250G" }] }),
+    {
+      AI: {
+        run: async () => {
+          calls++;
+          return { response: recipe() };
+        },
+      },
+    },
+  );
+  assert.equal(response.status, 400);
+  assert.equal(calls, 0);
+});

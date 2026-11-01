@@ -50,7 +50,7 @@ export async function generateRecipe(input, env, fetcher = fetch) {
   const provider = env.RECIPE_PROVIDER || "cloudflare";
   const messages = buildMessages(input),
     schema = recipeSchema(input);
-  let output, model;
+  let output, model, usage;
   if (provider === "huggingface") {
     if (!env.HF_TOKEN)
       throw new RecipeError("Opskriftsmodellen er ikke tilsluttet endnu.", 503);
@@ -86,19 +86,55 @@ export async function generateRecipe(input, env, fetcher = fetch) {
       );
     const data = await response.json();
     output = data.choices?.[0]?.message?.content;
+    usage = data.usage;
   } else if (provider === "cloudflare") {
     if (!env.AI)
       throw new RecipeError("Opskriftsmodellen er ikke tilsluttet endnu.", 503);
     model = env.CF_MODEL || DEFAULT_CF_MODEL;
-    const response = await env.AI.run(model, {
-      messages,
-      max_tokens: 2400,
-      temperature: 0.7,
-      top_p: 0.8,
-      response_format: { type: "json_schema", json_schema: schema },
-    });
+    let response;
+    try {
+      response = await env.AI.run(model, {
+        messages,
+        max_completion_tokens: 2400,
+        temperature: 0.7,
+        top_p: 0.8,
+        chat_template_kwargs: { enable_thinking: false },
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: "recipe", strict: true, schema },
+        },
+      });
+    } catch (error) {
+      // Documented Workers AI codes; never expose the provider's upgrade prompts.
+      const code =
+        Number(error?.code) ||
+        Number(String(error?.message).match(/\b(3036|3040|5035)\b/)?.[1]);
+      if (code === 3036) {
+        const retryAfter = Math.ceil(
+          (86400000 - (Date.now() % 86400000)) / 1000,
+        );
+        throw new RecipeError(
+          "Dagens gratis opskriftskvote er brugt op. Prøv igen senere.",
+          429,
+          retryAfter,
+        );
+      }
+      if (code === 3040)
+        throw new RecipeError(
+          "Modellen er optaget. Prøv igen om et minut.",
+          429,
+          60,
+        );
+      if (code === 5035)
+        throw new RecipeError(
+          "Denne model er ikke tilgængelig på projektets gratis plan.",
+          503,
+        );
+      throw error;
+    }
     // Workers AI models can return either the native or OpenAI-compatible shape.
     output = response.response ?? response.choices?.[0]?.message?.content;
+    usage = response.usage;
   } else throw new RecipeError("Ukendt modeludbyder.", 503);
   const recipe = validateRecipe(output, input);
   return {
@@ -107,6 +143,14 @@ export async function generateRecipe(input, env, fetcher = fetch) {
     provider,
     generatedAt: new Date().toISOString(),
     promptVersion: PROMPT_VERSION,
+    usage: usage && {
+      promptTokens: Number.isSafeInteger(usage.prompt_tokens)
+        ? usage.prompt_tokens
+        : null,
+      completionTokens: Number.isSafeInteger(usage.completion_tokens)
+        ? usage.completion_tokens
+        : null,
+    },
   };
 }
 
@@ -166,9 +210,21 @@ export default {
           );
       }
       const result = await generateRecipe(input, env);
+      console.log(
+        JSON.stringify({
+          event: "recipe_generated",
+          provider: result.provider,
+          model: result.model,
+          status: result.status,
+          usage: result.usage,
+        }),
+      );
       return json(result);
     } catch (e) {
-      if (e instanceof RecipeError) return json({ error: e.message }, e.status);
+      if (e instanceof RecipeError) {
+        if (e.retryAfter) headers["Retry-After"] = String(e.retryAfter);
+        return json({ error: e.message }, e.status);
+      }
       // Never disclose model-provider responses, tokens or internal exception text.
       return json(
         { error: "Opskriften kunne ikke laves lige nu. Prøv igen om lidt." },
