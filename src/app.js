@@ -15,6 +15,7 @@ import {
   costLineTotal,
   costLineNote,
   costLineEquation,
+  offerPrice,
 } from "./cost-view.js";
 import { createApi } from "./api.js";
 import { DEMO_ORIGIN, demoData } from "./demo.js";
@@ -95,10 +96,14 @@ const state = {
   fetchId: 0,
   searchId: 0,
   fetchedAt: null,
+  stockRefreshFailed: false,
+  retryAt: 0,
+  retryMessage: "",
+  retryLanguage: null,
   capped: false,
   busy: false,
 };
-let map, markers, originMarker, dialogRecipe, generationController;
+let map, markers, originMarker, dialogRecipe, generationController, retryTimer;
 
 $("#app").innerHTML = `
   <header class="site-header wrap">
@@ -116,14 +121,14 @@ $("#app").innerHTML = `
     </section>
     <p id="message" class="message" role="status" aria-live="polite" hidden></p>
     <div class="workspace">
-      <aside class="sidebar" aria-label="Butikker og kort"><div class="section-title"><h2>1. Vælg butik</h2><span id="store-count" class="count-badge">0</span></div><p id="origin-label" class="muted location-label">Søg efter et sted for at begynde.</p><details id="map-disclosure" class="map-disclosure"><summary>Vis butikkerne på kortet</summary><div id="map" role="region" aria-label="Kort over butikker i nærheden"></div><div class="distance-note">Afstande er i fugleflugtslinje.</div></details><div id="stores" class="store-list"></div><p id="coverage-note" class="coverage-note">Kun deltagende Netto, føtex og Bilka. En søgning kan vise højst 20 butikker.</p></aside>
+      <aside class="sidebar" aria-label="Butikker og kort"><div class="section-title"><h2>1. Vælg butik</h2><span id="store-count" class="count-badge">0</span></div><button type="button" id="refresh" class="text-button" hidden>Hent igen ↻</button><p id="origin-label" class="muted location-label">Søg efter et sted for at begynde.</p><p id="stock-status" class="stock-note" role="status" hidden></p><details id="map-disclosure" class="map-disclosure"><summary>Vis butikkerne på kortet</summary><div id="map" role="region" aria-label="Kort over butikker i nærheden"></div><div class="distance-note">Afstande er i fugleflugtslinje.</div></details><div id="stores" class="store-list"></div><p id="coverage-note" class="coverage-note">Kun deltagende Netto, føtex og Bilka. En søgning kan vise højst 20 butikker.</p></aside>
       <div class="main-panel"><fieldset class="mode-picker"><legend>2. Find din næste ret</legend><div class="mode-options"><label><input type="radio" name="recipe-mode" value="manual" checked><span><strong>Jeg vælger varerne</strong><small>Lav en opskrift med dine egne fund</small></span></label><label><input type="radio" name="recipe-mode" value="inspire"><span><strong>Lad AI vælge</strong><small>Få retter foreslået fra butikkens udvalg</small></span></label></div></fieldset><section id="offers" aria-labelledby="offers-title"></section><section id="recipes" aria-labelledby="recipes-title"><div class="recipe-heading"><div><h2 id="recipes-title">3. Lav en opskrift</h2><p class="generation-intro">En ny opskrift lavet med netop de varer, du vælger.</p></div></div><div id="selected-products" class="selected-products"></div><div class="filters"><label><span class="sr-only">Antal personer</span><select id="servings"><option value="1">1 person</option><option value="2" selected>2 personer</option><option value="4">4 personer</option><option value="6">6 personer</option></select></label><label><span class="sr-only">Maksimal tilberedningstid</span><select id="max-minutes"><option value="20">Højst 20 min.</option><option value="30" selected>Højst 30 min.</option><option value="45">Højst 45 min.</option><option value="60">Højst 60 min.</option></select></label><label class="check-label"><input id="vegetarian" type="checkbox">Vegetarisk</label></div><details class="pantry-details"><summary>Det har jeg hjemme</summary><label class="pantry check-label"><input type="checkbox" id="pantry" checked> Olie, salt, sort peber og vand</label><label class="extra-pantry-label" for="extra-pantry">Andre basisvarer (valgfrit)</label><input id="extra-pantry" maxlength="400" placeholder="Fx ris, hvidløg, citron"><p>Adskil med komma. Alt andet står som ekstra indkøb.</p></details><div class="generate-actions"><button id="generate" class="primary-button" disabled>Lav en opskrift ${icon("arrow")}</button><button id="cancel-generation" class="text-button" hidden>Annullér</button></div><p id="generation-status" class="generation-status" role="status" aria-live="polite"></p><div id="ideas-list" class="ideas-list" aria-label="Forslag fra butikkens varer"></div><div id="recipe-list" class="recipe-list generated-list"></div></section></div>
     </div>
     <section class="closing-note"><span class="little-leaf">${icon("leaf")}</span><div><h2>En god idé begynder med det, der er.</h2><p>Opskrifterne tager udgangspunkt i dine valgte varer. Resten står på indkøbslisten, så du ved præcis, hvad der mangler.</p></div></section>
   </main>
   <footer class="wrap site-footer"><span class="footer-brand">nærmad.</span><p>Et uafhængigt projekt. Data fra <a href="https://developer.sallinggroup.dev/apireference/food-waste" target="_blank" rel="noreferrer">Salling Group</a> · Kort og adresser © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a></p><a href="https://github.com/HuayuanSong/naermad" target="_blank" rel="noreferrer">GitHub ↗</a></footer>
   <dialog id="recipe-dialog" class="recipe-dialog" aria-labelledby="recipe-dialog-title"><button class="dialog-close" aria-label="Luk opskrift">${icon("close")}</button><div id="recipe-detail"></div></dialog>
-  <dialog id="about-dialog" class="about-dialog" aria-labelledby="about-title"><button class="dialog-close" aria-label="Luk information">${icon("close")}</button><div class="eyebrow">OM PROJEKTET</div><h2 id="about-title">Gør et godt fund<br>til et godt måltid.</h2><p>Nærmad lader en sprogmodel skrive en ny dansk opskrift med datovarer fra en butik. Vælg selv ingredienser, eller brug “Lad AI vælge” til at få op til tre retter foreslået fra butikkens udvalg. En fuld opskrift skrives først, når du vælger en ret. Der bruges ikke et fast opskriftskatalog.</p><h3>Hvilke tilbud?</h3><p>Sallings Anti Food Waste API viser varer sat ned på grund af kort holdbarhed i deltagende Netto, føtex og Bilka. Det er ikke de almindelige tilbudsaviser. Lagerstatus er vejledende, og varer kan være solgt, når du kommer frem.</p><h3>Opskrifter og ingredienser</h3><p>Tryk på “Lav en opskrift” for at sende de valgte varenavne, portionsantal, tidsramme og basisvarer til en sprogmodel. Vi kontrollerer svarformatet og at alle valgte varer er refereret. Det kontrollerer ikke smag eller tilberedningens korrekthed. AI-opskrifter er ikke køkkentestede. Tjek produktets ingredienser, allergener og holdbarhed på emballagen.</p><h3>Data og privatliv</h3><p>En adressesøgning sendes til Photons offentlige søgetjeneste. I live-tilstand sendes den valgte position til Salling. Kortvisninger hentes fra OpenStreetMap. Ved AI-forslag sendes op til 60 forskellige varenavne fra butikken; ved opskriftsgenerering sendes kun varerne til den valgte ret og dine madvalg til modeltjenesten, ikke din adresse eller position. Appen har ingen analyseværktøjer og gemmer ikke din adresse på en server; søgninger caches kun i hukommelsen, mens siden er åben.</p><p>Geokodning og kort er fælles tjenester uden garanteret oppetid. Salling dokumenterer aktuelt 100 madspildsforespørgsler pr. dag. Vi cacher søgninger i fem minutter og opdaterer kun ved dit valg.</p><p>Dit sprogvalg gemmes kun i denne browser.</p><div class="about-links"><a href="https://developer.sallinggroup.dev/apireference/food-waste" target="_blank" rel="noreferrer">Sallings API ↗</a><a href="https://github.com/HuayuanSong/naermad#connect-salling" target="_blank" rel="noreferrer">Tilslut live data ↗</a><a href="https://github.com/komoot/photon" target="_blank" rel="noreferrer">Photon ↗</a></div></dialog>
+  <dialog id="about-dialog" class="about-dialog" aria-labelledby="about-title"><button class="dialog-close" aria-label="Luk information">${icon("close")}</button><div class="eyebrow">OM PROJEKTET</div><h2 id="about-title">Gør et godt fund<br>til et godt måltid.</h2><p>Nærmad lader en sprogmodel skrive en ny dansk opskrift med datovarer fra en butik. Vælg selv ingredienser, eller brug “Lad AI vælge” til at få op til tre retter foreslået fra butikkens udvalg. En fuld opskrift skrives først, når du vælger en ret. Der bruges ikke et fast opskriftskatalog.</p><h3>Hvilke tilbud?</h3><p>Sallings Anti Food Waste API viser varer sat ned på grund af kort holdbarhed i deltagende Netto, føtex og Bilka. Det er ikke de almindelige tilbudsaviser. Lagerstatus er vejledende, og varer kan være solgt, når du kommer frem.</p><h3>Opskrifter og ingredienser</h3><p>Tryk på “Lav en opskrift” for at sende de valgte varenavne og eventuelle varekategorier, portionsantal, tidsramme og basisvarer til en sprogmodel. Vi kontrollerer svarformatet og at alle valgte varer er refereret. Det kontrollerer ikke smag eller tilberedningens korrekthed. AI-opskrifter er ikke køkkentestede. Tjek produktets ingredienser, allergener og holdbarhed på emballagen.</p><h3>Data og privatliv</h3><p>En adressesøgning sendes til Photons offentlige søgetjeneste. I live-tilstand sendes den valgte position til Salling. Kortvisninger hentes fra OpenStreetMap. Ved AI-forslag sendes op til 60 forskellige varenavne og deres eventuelle varekategorier fra butikken; ved opskriftsgenerering sendes kun varerne til den valgte ret og dine madvalg til modeltjenesten, ikke din adresse eller position. Appen har ingen analyseværktøjer og gemmer ikke din adresse på en server; søgninger caches kun i hukommelsen, mens siden er åben.</p><p>Geokodning og kort er fælles tjenester uden garanteret oppetid. Salling dokumenterer aktuelt 100 madspildsforespørgsler pr. dag. Vi cacher søgninger i fem minutter og opdaterer kun ved dit valg.</p><p>Dit sprogvalg gemmes kun i denne browser.</p><div class="about-links"><a href="https://developer.sallinggroup.dev/apireference/food-waste" target="_blank" rel="noreferrer">Sallings API ↗</a><a href="https://github.com/HuayuanSong/naermad#connect-salling" target="_blank" rel="noreferrer">Tilslut live data ↗</a><a href="https://github.com/komoot/photon" target="_blank" rel="noreferrer">Photon ↗</a></div></dialog>
 `;
 
 const localizeStatic = bindStaticTranslations(document.body);
@@ -139,6 +144,7 @@ function message(text = "", error = false) {
 }
 function busy(value) {
   state.busy = value;
+  $("#refresh").disabled = value || !state.ready;
   $("#search-button").disabled = value || !state.ready;
   $("#locate").disabled = value || !state.ready;
   $("#search-button").innerHTML = value
@@ -207,6 +213,14 @@ function updateMap(fit = false) {
   }
 }
 function renderStores() {
+  $("#refresh").hidden = state.demo || state.fetchedAt === null;
+  const status = $("#stock-status");
+  status.hidden = !state.stockRefreshFailed;
+  status.textContent = state.stockRefreshFailed
+    ? t("Lageret kunne ikke opdateres. Viser oplysninger hentet {time}.", {
+        time: formatTime(state.fetchedAt),
+      })
+    : "";
   $("#store-count").textContent = state.stores.length;
   $("#origin-label").textContent =
     t(state.origin?.label || "") || t("Søg efter et sted for at begynde.");
@@ -231,6 +245,7 @@ function renderStores() {
         );
 }
 function selectStore(id) {
+  if (id && state.store?.id === id) return;
   state.store = state.stores.find((s) => s.id === id) || null;
   state.selected = new Set();
   invalidateGeneration();
@@ -240,15 +255,18 @@ function selectStore(id) {
   renderRecipes();
   updateMap();
 }
-function invalidateGeneration() {
+function cancelPendingGeneration() {
   generationController?.abort();
   state.generationId++;
   state.generating = false;
+  state.activeIdea = null;
+}
+function invalidateGeneration() {
+  cancelPendingGeneration();
   state.generatedRecipe = null;
   state.recipeContext = null;
   state.ideas = null;
   state.ideasContext = null;
-  state.activeIdea = null;
   state.generationMessage = "";
   state.variant = 0;
   if ($("#recipe-dialog").open) $("#recipe-dialog").close();
@@ -267,7 +285,7 @@ function renderOffers() {
   }
   const offers = state.expanded ? s.offers : s.offers.slice(0, 9);
   $("#offers").innerHTML =
-    `<div class="offer-header"><div><div class="eyebrow">${state.demo ? "DEMO · " : ""}${escapeHtml(s.name)}</div><h2 id="offers-title">${t("Vælg dine varer")}</h2><p>${t("Vælg 1–6 varer, du vil bruge sammen. Du bestemmer.")}</p></div>${!state.demo ? `<button id="refresh" class="text-button">${t("Hent igen ↻")}</button>` : ""}</div><div class="selection-heading"><span><strong>${state.selected.size}</strong> ${t("varer valgt ·")} ${s.offers.length} ${t("datovarer i butikken")}</span>${state.selected.size ? `<button id="clear-selection" class="text-button">${t("Ryd valg")}</button>` : ""}</div><div class="offer-grid">${offers.map((o) => `<article class="offer-card ${state.selected.has(o.id) ? "selected" : ""}"><button class="offer-toggle" data-offer="${escapeHtml(o.id)}" aria-pressed="${state.selected.has(o.id)}" aria-label="${state.selected.has(o.id) ? t("Fravælg") : t("Vælg")} ${escapeHtml(o.name)}"><div class="offer-card-top"><span class="discount">−${o.discount}%</span><span class="selection-icon">${icon(state.selected.has(o.id) ? "check" : "plus")}</span></div><h3>${escapeHtml(o.name)}</h3><div class="prices"><strong>${formatMoney(o.price)}</strong><s>${formatMoney(o.originalPrice)}</s></div><div class="unit-note">${o.unit === "kg" ? t("Pr. kg") : o.unit === "each" ? t("Pr. salgsenhed") : t("Prisenhed ikke oplyst")}</div></button><details class="offer-meta"><summary>${t("Pris og gyldighed")}</summary><p>${t("Tilbud til")} ${formatTime(o.endsAt)}. ${o.stock === null ? t("Lager ukendt.") : `${t("Vejledende lager:")} ${o.stock} ${o.unit === "kg" ? "kg" : o.unit === "each" ? t("stk.") : t("enheder")}.`} ${state.demo ? t("Eksempeldata.") : `${t("Hentet")} ${formatTime(state.fetchedAt)}.`}</p></details></article>`).join("")}</div>${s.offers.length > 9 ? `<button class="show-more" id="show-more">${state.expanded ? t("Vis færre varer") : t("Se alle {count} varer", { count: s.offers.length })} ↓</button>` : ""}${!s.offers.length ? `<div class="empty">${t("Ingen aktive datovarer i svaret. Prøv en anden butik.")}</div>` : ""}<p class="stock-note">${t("Varer kan være udsolgt ved ankomst. Priserne gælder varerne, ikke hele opskriften.")}</p>`;
+    `<div class="offer-header"><div><div class="eyebrow">${state.demo ? "DEMO · " : ""}${escapeHtml(s.name)}</div><h2 id="offers-title">${t("Vælg dine varer")}</h2><p>${t("Vælg 1–6 varer, du vil bruge sammen. Du bestemmer.")}</p></div></div><div class="selection-heading"><span><strong>${state.selected.size}</strong> ${t("varer valgt ·")} ${s.offers.length} ${t("datovarer i butikken")}</span>${state.selected.size ? `<button id="clear-selection" class="text-button">${t("Ryd valg")}</button>` : ""}</div><div class="offer-grid">${offers.map((o) => `<article class="offer-card ${state.selected.has(o.id) ? "selected" : ""}"><button class="offer-toggle" data-offer="${escapeHtml(o.id)}" aria-pressed="${state.selected.has(o.id)}" aria-label="${state.selected.has(o.id) ? t("Fravælg") : t("Vælg")} ${escapeHtml(o.name)}"><div class="offer-card-top"><span class="discount">−${o.discount}%</span><span class="selection-icon">${icon(state.selected.has(o.id) ? "check" : "plus")}</span></div><h3>${escapeHtml(o.name)}</h3><div class="prices"><strong>${formatMoney(o.price)}</strong><s>${formatMoney(o.originalPrice)}</s></div><div class="unit-note">${o.unit === "kg" ? t("Pr. kg") : o.unit === "each" ? t("Pr. salgsenhed") : t("Prisenhed ikke oplyst")}</div></button><details class="offer-meta"><summary>${t("Pris og gyldighed")}</summary><p>${t("Tilbud til")} ${formatTime(o.endsAt)}. ${o.stock === null ? t("Lager ukendt.") : `${t("Vejledende lager:")} ${o.stock} ${o.unit === "kg" ? "kg" : o.unit === "each" ? t("stk.") : t("enheder")}.`} ${state.demo ? t("Eksempeldata.") : `${t("Hentet")} ${formatTime(state.fetchedAt)}.`}</p></details></article>`).join("")}</div>${s.offers.length > 9 ? `<button class="show-more" id="show-more">${state.expanded ? t("Vis færre varer") : t("Se alle {count} varer", { count: s.offers.length })} ↓</button>` : ""}${!s.offers.length ? `<div class="empty">${t("Ingen aktive datovarer i svaret. Prøv en anden butik.")}</div>` : ""}<p class="stock-note">${t("Varer kan være udsolgt ved ankomst. Priserne gælder varerne, ikke hele opskriften.")}</p>`;
 }
 function generationButtonLabel() {
   if (state.generating) {
@@ -286,6 +304,14 @@ function generationStatusText() {
       );
     return t("Modellen skriver mængder og fremgangsmåde til din ret.");
   }
+  if (coolingDown()) {
+    const wait = t("Du kan prøve igen {time}.", {
+      time: formatTime(state.retryAt),
+    });
+    return state.retryLanguage === getLanguage()
+      ? `${state.retryMessage} ${wait}`
+      : wait;
+  }
   const error = errorText(state.generationMessage);
   if (error) return error;
   if (!state.config?.recipeEndpoint)
@@ -297,6 +323,24 @@ function generationStatusText() {
   return t(
     "AI-genereret på bestilling. Ekstra ingredienser bliver vist tydeligt.",
   );
+}
+function coolingDown() {
+  return Date.now() < state.retryAt;
+}
+function startCooldown(error) {
+  state.retryAt = Math.max(state.retryAt, Date.now() + error.retryAfter);
+  state.retryMessage = errorText(error.message);
+  state.retryLanguage = getLanguage();
+  clearTimeout(retryTimer);
+  function resume() {
+    if (coolingDown())
+      retryTimer = setTimeout(
+        resume,
+        Math.min(state.retryAt - Date.now(), 2147483647),
+      );
+    else renderRecipes();
+  }
+  resume();
 }
 function connectionStatusText() {
   if (state.configurationFailed) return t("Ikke tilsluttet");
@@ -328,6 +372,7 @@ function renderRecipes() {
   $("#generate").disabled =
     !(inspire ? candidates.offers.length : offers.length) ||
     state.generating ||
+    coolingDown() ||
     !state.config?.recipeEndpoint ||
     (inspire && state.variant >= 20);
   const buttonLabel = generationButtonLabel();
@@ -353,7 +398,7 @@ function renderRecipes() {
     (i) => i.productId === null && i.pantryItem === null,
   );
   $("#recipe-list").innerHTML =
-    `<article class="recipe-card generated-card"><div class="recipe-card-top"><span class="match-badge">${t("Ny AI-opskrift")} · ${recipe.servings} ${recipe.servings === 1 ? t("person") : t("personer")}</span><span class="recipe-time">${icon("clock")}${recipe.minutes} min.</span></div><h3>${escapeHtml(recipe.title)}</h3><p>${escapeHtml(recipe.description)}</p>${costSummary(recipeCost(recipe, state.recipeContext))}<div class="recipe-provenance"><strong>${inspire ? t("Bruger disse datovarer") : t("Bruger dine valgte varer")}</strong><p>${state.recipeContext.products.map((p) => escapeHtml(p.name)).join(" · ")}</p></div><div class="recipe-extras"><strong>${extras.length ? t("Køb også") : t("Ingen ekstra indkøb")}</strong><p>${extras.length ? extras.map((i) => escapeHtml(i.name)).join(", ") : t("Resten er på din liste over basisvarer.")}</p></div><div class="recipe-card-bottom"><button data-recipe="generated" class="recipe-link">${t("Se opskrift og indkøbsliste")} ${icon("arrow")}</button>${!inspire ? `<button id="another-recipe" class="text-button" ${state.variant >= 20 ? "disabled" : ""}>${t("Lav en anden idé")}</button>` : ""}</div></article>`;
+    `<article class="recipe-card generated-card"><div class="recipe-card-top"><span class="match-badge">${t("Ny AI-opskrift")} · ${recipe.servings} ${recipe.servings === 1 ? t("person") : t("personer")}</span><span class="recipe-time">${icon("clock")}${recipe.minutes} min.</span></div><h3>${escapeHtml(recipe.title)}</h3><p>${escapeHtml(recipe.description)}</p>${costSummary(recipeCost(recipe, state.recipeContext))}<div class="recipe-provenance"><strong>${inspire ? t("Bruger disse datovarer") : t("Bruger dine valgte varer")}</strong><p>${state.recipeContext.products.map((p) => escapeHtml(p.name)).join(" · ")}</p></div><div class="recipe-extras"><strong>${extras.length ? t("Køb også") : t("Ingen ekstra indkøb")}</strong><p>${extras.length ? extras.map((i) => escapeHtml(i.name)).join(", ") : t("Resten er på din liste over basisvarer.")}</p></div><div class="recipe-card-bottom"><button data-recipe="generated" class="recipe-link">${t("Se opskrift og indkøbsliste")} ${icon("arrow")}</button>${!inspire ? `<button id="another-recipe" class="text-button" ${state.variant >= 20 || state.generating || coolingDown() || !offers.length ? "disabled" : ""}>${t("Lav en anden idé")}</button>` : ""}</div></article>`;
 }
 function renderIdeas() {
   const result = state.ideas;
@@ -367,25 +412,28 @@ function renderIdeas() {
       `<div class="empty"><h3>${t("Prøv en anden butik eller andre madvalg")}</h3><p>${escapeHtml(result.reason)}</p></div>`;
     return;
   }
-  const names = new Map(
-    state.ideasContext.input.products.map((p) => [p.id, p.name]),
+  const byProduct = new Map(
+    state.ideasContext.input.products.map((p, index) => [
+      p.id,
+      state.ideasContext.offers[index],
+    ]),
   );
   $("#ideas-list").innerHTML =
     result.ideas
-      .map(
-        (idea, i) =>
-          `<article class="idea-card"><div class="idea-top"><span class="idea-number">${t("IDÉ")} 0${i + 1}</span><span class="recipe-time">${icon("clock")}${t("ca.")} ${idea.minutes} min.</span></div><h3>${escapeHtml(idea.title)}</h3><p class="idea-description">${escapeHtml(idea.description)}</p>${ideaCostSummary(idea, state.ideasContext)}<div class="idea-products"><strong>${t("Fra butikkens datovarer")}</strong><ul>${idea.productIds.map((id) => `<li>${escapeHtml(names.get(id))}</li>`).join("")}</ul></div><p class="idea-extras"><strong>${idea.extraIngredients.length ? t("Køb også") : t("Resten fra dit køkken")}</strong><br>${idea.extraIngredients.length ? idea.extraIngredients.map(escapeHtml).join(", ") : t("Bruger dine angivne basisvarer.")}</p><button class="secondary-button" data-idea="${i}" aria-busy="${state.generating && state.generationKind === "recipe" && state.activeIdea === i}" ${state.generating ? "disabled" : ""}>${state.generating && state.generationKind === "recipe" && state.activeIdea === i ? `${spinner}<span>${t("Skriver opskrift …")}</span>` : `${t("Lav denne opskrift")} ${icon("arrow")}`}</button></article>`,
-      )
+      .map((idea, i) => {
+        const available = idea.productIds.every(
+          (id) => !byProduct.get(id).unavailable,
+        );
+        return `<article class="idea-card"><div class="idea-top"><span class="idea-number">${t("IDÉ")} 0${i + 1}</span><span class="recipe-time">${icon("clock")}${t("ca.")} ${idea.minutes} min.</span></div><h3>${escapeHtml(idea.title)}</h3><p class="idea-description">${escapeHtml(idea.description)}</p>${ideaCostSummary(idea, state.ideasContext, available)}<div class="idea-products"><strong>${t("Fra butikkens datovarer")}</strong><ul>${idea.productIds.map((id) => `<li>${escapeHtml(byProduct.get(id).name)}</li>`).join("")}</ul></div><p class="idea-extras"><strong>${idea.extraIngredients.length ? t("Køb også") : t("Resten fra dit køkken")}</strong><br>${idea.extraIngredients.length ? idea.extraIngredients.map(escapeHtml).join(", ") : t("Bruger dine angivne basisvarer.")}</p><button class="secondary-button" data-idea="${i}" aria-busy="${state.generating && state.generationKind === "recipe" && state.activeIdea === i}" ${state.generating || coolingDown() || !available ? "disabled" : ""}>${state.generating && state.generationKind === "recipe" && state.activeIdea === i ? `${spinner}<span>${t("Skriver opskrift …")}</span>` : `${t("Lav denne opskrift")} ${icon("arrow")}`}</button></article>`;
+      })
       .join("") +
     `<p class="ideas-note">${t("Forslagene er AI-genererede. Mængder og den endelige indkøbsliste kommer med den fulde opskrift.")}</p>`;
 }
-async function runGeneration({ kind, input, onResult, afterRender }) {
+async function runGeneration({ kind, input, onResult }) {
   const requestId = ++state.generationId;
   generationController = new AbortController();
   state.generating = true;
   state.generationKind = kind;
-  state.generatedRecipe = null;
-  state.recipeContext = null;
   state.generationMessage = "";
   renderRecipes();
   try {
@@ -404,7 +452,10 @@ async function runGeneration({ kind, input, onResult, afterRender }) {
     if (requestId !== state.generationId) return;
     onResult(data);
   } catch (error) {
-    if (requestId === state.generationId)
+    if (error.status === 429 && error.retryAfter > 0) {
+      startCooldown(error);
+      if (requestId !== state.generationId) renderRecipes();
+    } else if (requestId === state.generationId)
       state.generationMessage =
         error.name === "AbortError"
           ? t("Genereringen er annulleret.")
@@ -413,36 +464,40 @@ async function runGeneration({ kind, input, onResult, afterRender }) {
     if (requestId === state.generationId) {
       state.generating = false;
       renderRecipes();
-      afterRender?.();
     }
   }
 }
 async function generateSuggestions() {
-  if (state.generating) return;
+  if (state.generating || coolingDown()) return;
   state.extraPantry = $("#extra-pantry").value;
-  if (state.ideas) state.variant++;
+  const variant = state.ideasContext ? state.ideasContext.input.variant + 1 : 0;
   let context;
   try {
-    context = ideasInput(state.store?.offers || [], state);
+    context = ideasInput(state.store?.offers || [], { ...state, variant });
   } catch (error) {
     state.generationMessage = error.message;
     renderRecipes();
     return;
   }
-  state.ideas = null;
-  state.ideasContext = null;
   state.activeIdea = null;
   return runGeneration({
     kind: "ideas",
     input: context.input,
     onResult(data) {
-      state.ideas = validateIdeas(data, context.input);
+      const result = validateIdeas(data, context.input);
+      if (result.status === "cannot_create" && state.ideas?.status === "ok") {
+        state.generationMessage = result.reason;
+        return;
+      }
+      reconcileOffers(context, currentOffersById());
+      state.ideas = result;
       state.ideasContext = context;
+      state.variant = variant;
     },
   });
 }
-async function generate(ideaIndex) {
-  if (state.generating) return;
+async function generate(ideaIndex, variant = state.variant) {
+  if (state.generating || coolingDown()) return;
   if (state.mode === "inspire" && ideaIndex === undefined)
     return generateSuggestions();
   state.extraPantry = $("#extra-pantry").value;
@@ -462,7 +517,10 @@ async function generate(ideaIndex) {
       snapshot = prepared.offers.map((o) => ({ ...o }));
       state.activeIdea = ideaIndex;
     } else {
-      input = generationInput(state.store?.offers || [], state.selected, state);
+      input = generationInput(state.store?.offers || [], state.selected, {
+        ...state,
+        variant,
+      });
       snapshot = selectedOffers().map((o) => ({ ...o }));
     }
   } catch (error) {
@@ -474,8 +532,8 @@ async function generate(ideaIndex) {
     kind: "recipe",
     input,
     onResult(data) {
-      state.generatedRecipe = validateRecipe(data, input);
-      state.recipeContext = {
+      const recipe = validateRecipe(data, input);
+      const context = {
         ...input,
         offers: snapshot,
         storeName: state.store.name,
@@ -483,9 +541,23 @@ async function generate(ideaIndex) {
         provider: data.provider || "",
         generatedAt: data.generatedAt || new Date().toISOString(),
       };
-    },
-    afterRender() {
-      if (fromIdea && state.generatedRecipe?.status === "ok") showRecipe();
+      reconcileOffers(context, currentOffersById());
+      if (context.offers.some((offer) => offer.unavailable))
+        throw new Error(
+          "En vare i forslaget er udløbet eller ændret. Hent nye forslag.",
+        );
+      if (
+        recipe.status === "cannot_create" &&
+        state.generatedRecipe?.status === "ok"
+      ) {
+        state.generationMessage = recipe.reason;
+        return;
+      }
+      state.generatedRecipe = recipe;
+      state.recipeContext = context;
+      if (!fromIdea) state.variant = variant;
+      if (recipe.status === "ok" && (fromIdea || $("#recipe-dialog").open))
+        showRecipe();
     },
   });
 }
@@ -504,7 +576,7 @@ function showRecipe() {
   );
   const group = (title, items) =>
     items.length
-      ? `<h4>${title}</h4><ul>${items.map((i) => `<li><label><input type="checkbox"><span><strong>${escapeHtml(i.quantity)}</strong> ${escapeHtml(i.name)}</span></label>${i.productId ? `<small class="detail-product">${escapeHtml(offerById.get(i.productId).name)} · ${formatMoney(offerById.get(i.productId).price)} ${offerById.get(i.productId).unit === "kg" ? t("pr. kg") : offerById.get(i.productId).unit === "each" ? t("pr. salgsenhed") : t("Prisenhed ikke oplyst")}</small>` : ""}</li>`).join("")}</ul>`
+      ? `<h4>${title}</h4><ul>${items.map((i) => `<li><label><input type="checkbox"><span><strong>${escapeHtml(i.quantity)}</strong> ${escapeHtml(i.name)}</span></label>${i.productId ? `<small class="detail-product">${escapeHtml(offerById.get(i.productId).name)} · <span data-offer-price="${i.productId}">${offerPrice(offerById.get(i.productId))}</span></small>` : ""}</li>`).join("")}</ul>`
       : "";
   $("#recipe-detail").innerHTML =
     `<div class="eyebrow">${t("AI-GENERERET")} · ${recipe.minutes} ${t("MINUTTER")} · ${recipe.servings} ${recipe.servings === 1 ? t("PERSON") : t("PERSONER")}</div><h2 id="recipe-dialog-title">${escapeHtml(recipe.title)}</h2><p class="recipe-intro">${escapeHtml(recipe.description)}</p><section class="recipe-costs" aria-label="${t("Pris på nedsatte varer")}"><div id="recipe-cost-summary" role="status" aria-live="polite">${costSummary(cost)}</div>${costBreakdown(cost)}</section><div class="recipe-detail-layout"><div class="shopping-list"><h3>${t("Din indkøbsliste")}</h3>${group(
@@ -519,21 +591,81 @@ function showRecipe() {
       t("Fra dit køkken"),
       recipe.ingredients.filter((i) => i.pantryItem !== null),
     )}<p class="list-note">${t("Tjek pakkestørrelser. Mængderne er til {count} personer; én nedsat pakke dækker ikke nødvendigvis behovet.", { count: recipe.servings })}</p></div><div class="method"><h3>${t("Sådan gør du")}</h3><ol>${recipe.steps.map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ol><p class="recipe-caution">${t("AI-opskriften er ikke køkkentestet. Tjek tilberedning, allergener og varernes holdbarhed.")}</p></div></div><div class="dialog-actions"><button id="copy-list" class="primary-button">${t("Kopiér indkøbsliste")}</button><button id="download-list" class="secondary-button">${t("Gem som tekst")}</button><button id="print-recipe" class="text-button">${t("Udskriv")}</button><span id="copy-status" role="status"></span></div><p class="generation-credit">${t("Lavet")} ${formatTime(context.generatedAt)} · ${escapeHtml(context.model)}</p>`;
-  $("#recipe-dialog").showModal();
+  if (!$("#recipe-dialog").open) $("#recipe-dialog").showModal();
 }
 
-async function loadStores(origin, preferredStoreId) {
-  if (!state.ready) return;
-  const request = ++state.fetchId;
-  state.origin = origin;
-  state.stores = [];
-  state.store = null;
-  state.selected.clear();
-  invalidateGeneration();
-  renderStores();
+function currentOffersById() {
+  const now = Date.now();
+  return new Map(
+    (state.store?.offers || [])
+      .filter((o) => Date.parse(o.endsAt) > now)
+      .map((o) => [o.id, o]),
+  );
+}
+function reconcileOffers(context, active) {
+  if (!context) return false;
+  let changed = false;
+  context.offers = context.offers.map((previous) => {
+    const offer = active.get(previous.id);
+    if (!offer && previous.unavailable) return previous;
+    if (!offer) {
+      changed = true;
+      return { ...previous, unavailable: true, price: null, stock: null };
+    }
+    if (
+      previous.unavailable ||
+      offer.price !== previous.price ||
+      offer.stock !== previous.stock
+    )
+      changed = true;
+    return offer;
+  });
+  return changed;
+}
+function reconcileStore() {
+  const active = currentOffersById();
+  state.selected = new Set([...state.selected].filter((id) => active.has(id)));
+  reconcileOffers(state.ideasContext, active);
+  const changed = reconcileOffers(state.recipeContext, active);
+  if (changed && $("#recipe-dialog").open) {
+    // Replace just the price breakdown. Keep the checklist, scroll and open dialog.
+    const cost = recipeCost(state.generatedRecipe, state.recipeContext);
+    const details = $("#recipe-dialog .cost-breakdown");
+    const wasOpen = details.open;
+    const focusId = details.contains(document.activeElement)
+      ? document.activeElement.id
+      : "";
+    details.outerHTML = costBreakdown(cost);
+    $("#recipe-dialog .cost-breakdown").open = wasOpen;
+    if (focusId)
+      document.getElementById(focusId)?.focus({ preventScroll: true });
+    $("#recipe-cost-summary").innerHTML = costSummary(cost);
+    for (const line of cost.lines) {
+      for (const price of document.querySelectorAll(
+        `[data-offer-price="${line.id}"]`,
+      ))
+        price.textContent = offerPrice(line.offer);
+    }
+  }
   renderOffers();
   renderRecipes();
-  updateMap(true);
+}
+async function loadStores(origin, refresh = false) {
+  if (!state.ready) return;
+  const request = ++state.fetchId;
+  if (!refresh) {
+    state.origin = origin;
+    state.stores = [];
+    state.store = null;
+    state.fetchedAt = null;
+    state.stockRefreshFailed = false;
+    state.selected.clear();
+    invalidateGeneration();
+    renderStores();
+    renderOffers();
+    renderRecipes();
+    updateMap(true);
+  }
   busy(true);
   message(t("Finder butikker …"));
   try {
@@ -549,24 +681,41 @@ async function loadStores(origin, preferredStoreId) {
       state.capped = result.capped;
     }
     if (request !== state.fetchId) return;
-    selectStore(
-      state.stores.find((store) => store.id === preferredStoreId)?.id ??
-        state.stores[0]?.id,
-    );
+    state.stockRefreshFailed = false;
+    const retained =
+      refresh && state.stores.find((store) => store.id === state.store?.id);
+    const missingStore =
+      refresh && !retained && state.generatedRecipe?.status === "ok";
+    if (retained || missingStore) {
+      state.store = retained || { ...state.store, offers: [] };
+      reconcileStore();
+      renderStores();
+    } else selectStore(state.stores[0]?.id);
     updateMap(true);
     message(
-      state.stores.length
-        ? ""
-        : state.demo
-          ? t(
-              "Der er ingen demobutikker tæt på dette sted. Prøv Aarhus-demoen. Live butikker kræver en Salling-tilslutning.",
-            )
-          : t(
-              "Salling returnerede ingen deltagende butikker i området. Prøv en større radius eller et andet sted.",
-            ),
+      missingStore
+        ? t(
+            "Den valgte butik er ikke med i det seneste svar. Din opskrift er stadig tilgængelig.",
+          )
+        : state.stores.length
+          ? ""
+          : state.demo
+            ? t(
+                "Der er ingen demobutikker tæt på dette sted. Prøv Aarhus-demoen. Live butikker kræver en Salling-tilslutning.",
+              )
+            : t(
+                "Salling returnerede ingen deltagende butikker i området. Prøv en større radius eller et andet sted.",
+              ),
     );
   } catch (e) {
-    if (request === state.fetchId) message(e.message, true);
+    if (request === state.fetchId) {
+      if (refresh && state.fetchedAt !== null) {
+        state.stockRefreshFailed = true;
+        removeExpiredOffers();
+        renderStores();
+      }
+      message(e.message, true);
+    }
   } finally {
     if (request === state.fetchId) busy(false);
   }
@@ -692,6 +841,7 @@ $("#locate").addEventListener("click", () => {
     { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 },
   );
 });
+$("#refresh").addEventListener("click", () => loadStores(state.origin, true));
 $("#stores").addEventListener("click", (e) => {
   const button = e.target.closest("[data-store]");
   if (button) selectStore(button.dataset.store);
@@ -700,7 +850,7 @@ $("#offers").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
   if (b.hasAttribute("data-reset")) return resetDemo();
-  if (b.id === "refresh") return loadStores(state.origin, state.store?.id);
+
   if (b.dataset.offer) {
     const id = b.dataset.offer;
     if (state.selected.has(id)) state.selected.delete(id);
@@ -755,15 +905,14 @@ $("#ideas-list").addEventListener("click", (e) => {
 });
 $("#generate").addEventListener("click", () => generate());
 $("#cancel-generation").addEventListener("click", () => {
-  invalidateGeneration();
+  cancelPendingGeneration();
   state.generationMessage = t("Genereringen er annulleret.");
   renderRecipes();
 });
 $("#recipe-list").addEventListener("click", (e) => {
   if (e.target.closest("[data-recipe]")) showRecipe();
   if (e.target.closest("#another-recipe")) {
-    state.variant++;
-    generate();
+    generate(undefined, state.variant + 1);
   }
 });
 $("#map-disclosure").addEventListener("toggle", () => {
@@ -891,19 +1040,11 @@ function removeExpiredOffers() {
   }
   if (!changed) return;
   if (currentStoreChanged) {
-    const activeIds = new Set(state.store.offers.map((offer) => offer.id));
-    state.selected = new Set(
-      [...state.selected].filter((id) => activeIds.has(id)),
-    );
-    invalidateGeneration();
-    renderOffers();
-    renderRecipes();
+    reconcileStore();
     message(t("Udløbne tilbud er fjernet. Vælg eventuelt en anden vare."));
   }
   renderStores();
 }
 // Expiration is checked locally; no timer polls the API or consumes its quota.
-setInterval(() => {
-  if (!state.busy) removeExpiredOffers();
-}, 60000);
+setInterval(removeExpiredOffers, 60000);
 boot();

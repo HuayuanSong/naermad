@@ -1,3 +1,5 @@
+import { MAX_CATEGORY_LENGTH } from "../generation/ingredients.js";
+
 export function distanceKm(a, b) {
   const rad = Math.PI / 180;
   const dlat = (b.lat - a.lat) * rad;
@@ -11,7 +13,7 @@ export function distanceKm(a, b) {
 }
 
 const numeric = (v) => typeof v === "number" && Number.isFinite(v);
-export function normalizeOffer(raw, storeId, index, now = Date.now()) {
+export function normalizeOffer(raw, storeId, _index, now = Date.now()) {
   const o = raw?.offer,
     p = raw?.product;
   if (!o || !p || typeof p.description !== "string" || !p.description.trim())
@@ -35,9 +37,27 @@ export function normalizeOffer(raw, storeId, index, now = Date.now()) {
     end <= now
   )
     return null;
+  const name = p.description.trim().slice(0, 240);
+  const category = [p.categories?.en, p.categories?.da].find(
+    (value) => typeof value === "string" && value.trim(),
+  );
   return {
-    id: `${storeId}:${o.ean || p.ean || index}:${index}`,
-    name: p.description.trim().slice(0, 240),
+    // A new price or a different response order can still describe the same lot.
+    id: JSON.stringify([
+      storeId,
+      o.ean || p.ean || "",
+      name,
+      start,
+      end,
+      o.stockUnit,
+    ]),
+    name,
+    ...(category && {
+      category: category
+        .trim()
+        .replace(/\s+/gu, " ")
+        .slice(-MAX_CATEGORY_LENGTH),
+    }),
     price: o.newPrice,
     originalPrice: o.originalPrice,
     discount: Math.round((1 - o.newPrice / o.originalPrice) * 100),
@@ -79,17 +99,22 @@ export function normalizeStores(raw, origin, radius, now = Date.now()) {
       const distance = distanceKm(origin, { lat, lon });
       if (distance > radius) return [];
       seen.add(s.id);
-      const ids = new Set();
+      const pricesByLot = new Map();
       const offers = (
         Array.isArray(row.clearances) ? row.clearances : []
       ).flatMap((item, i) => {
         const offer = normalizeOffer(item, s.id, i, now);
         if (!offer) return [];
-        const identity = `${item.offer?.ean || offer.name}|${offer.price}|${offer.endsAt}`;
-        if (ids.has(identity)) return [];
-        ids.add(identity);
+        const prices = pricesByLot.get(offer.id) ?? new Set();
+        if (prices.has(offer.price)) return [];
+        prices.add(offer.price);
+        pricesByLot.set(offer.id, prices);
         return [offer];
       });
+      for (const offer of offers) {
+        if (pricesByLot.get(offer.id).size > 1)
+          offer.id = JSON.stringify([offer.id, offer.price]);
+      }
       return [
         {
           id: String(s.id),

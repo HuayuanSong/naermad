@@ -204,6 +204,93 @@ test("a recipe response cannot revive an offer that expired while the model was 
   );
 });
 
+test("same-store refresh preserves edited quantities across a cache hit, transient failure and reordered, repriced stock", async ({
+  page,
+}) => {
+  const now = Date.now();
+  await page.clock.install({ time: now });
+  const inventory = demoData(now);
+  await connectFixture(page);
+  await connectInventory(page, inventory);
+  await page.locator("#generate").click();
+  await page.locator("[data-recipe]").click();
+  await page.locator(".cost-breakdown summary").click();
+  await page.locator("#cost-p1").fill("2");
+  await page.keyboard.press("Escape");
+  const total = page.locator(".recipe-card .cost-total");
+  await expect(total).toContainText("16,00");
+  await page.locator("#refresh").click();
+  await expect(total).toContainText("16,00");
+  await page.clock.fastForward(301000);
+  await page.route("https://api.sallinggroup.com/**", (route) =>
+    route.fulfill({ status: 503, json: {} }),
+  );
+  await page.locator("#refresh").click();
+  await expect(page.locator("#stock-status")).toContainText(
+    "Viser oplysninger hentet",
+  );
+  await expect(page.locator(".store-card")).toHaveCount(3);
+  await expect(total).toContainText("16,00");
+  inventory[0].clearances[0].offer.newPrice = 7;
+  inventory[0].clearances.reverse();
+  await page.route("https://api.sallinggroup.com/**", (route) =>
+    route.fulfill({ json: inventory }),
+  );
+  await page.clock.fastForward(3000);
+  await page.locator("#refresh").click();
+  await expect(total).toContainText("14,00");
+  await expect(page.locator("#stock-status")).toBeHidden();
+  await expect(page.locator(".selection-heading")).toContainText(
+    "1 varer valgt",
+  );
+  await page.locator("[data-recipe]").click();
+  await page.locator(".cost-breakdown summary").click();
+  await expect(page.locator("#cost-p1")).toHaveValue("2");
+});
+
+test("expiry preserves the open checklist and flags only the unavailable recipe offer in the subtotal and export", async ({
+  page,
+}) => {
+  const now = Date.now();
+  await page.clock.install({ time: now });
+  const inventory = demoData(now);
+  inventory[0].clearances[1].offer.endTime = new Date(
+    now + 30000,
+  ).toISOString();
+  inventory[0].clearances[0].offer.endTime = new Date(
+    now + 90000,
+  ).toISOString();
+  await connectFixture(page);
+  await connectInventory(page, inventory);
+  await page.locator("#generate").click();
+  await page.locator("[data-recipe]").click();
+  const dialog = page.locator("#recipe-dialog");
+  await dialog.locator(".shopping-list input").first().check();
+  await dialog.locator(".cost-breakdown summary").click();
+  await page.locator("#cost-p1").fill("2");
+  await page.clock.fastForward(61000);
+  await expect(dialog).toBeVisible();
+  await expect(page.locator("#cost-p1")).toHaveValue("2");
+  await expect(dialog.locator(".cost-total")).toContainText("16,00");
+  await page.clock.fastForward(60000);
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator(".shopping-list input").first()).toBeChecked();
+  await expect(dialog.locator(".detail-product")).toContainText(
+    "Tilbuddet er ikke længere tilgængeligt",
+  );
+  await expect(dialog.locator(".cost-summary")).toContainText("Broccoli");
+  await expect(dialog.locator(".cost-total")).toContainText("+ ?");
+  await expect(dialog.locator(".cost-breakdown")).toHaveAttribute("open", "");
+  const downloaded = page.waitForEvent("download");
+  await page.locator("#download-list").click();
+  const stream = await (await downloaded).createReadStream();
+  const chunks = [];
+  for await (const part of stream) chunks.push(part);
+  const list = Buffer.concat(chunks).toString();
+  expect(list).toContain("Tilbud ikke tilgængeligt");
+  expect(list).not.toContain("16,00");
+});
+
 test("location controls wait for configuration and the map can open safely during startup", async ({
   page,
 }) => {
@@ -228,6 +315,68 @@ test("location controls wait for configuration and the map can open safely durin
   await expect(page.locator("#search-button")).toBeEnabled();
   await expect(page.locator(".leaflet-container")).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test("a saved recipe survives its store disappearing and uses current prices when the store returns", async ({
+  page,
+}) => {
+  const now = Date.now();
+  await page.clock.install({ time: now });
+  const inventory = demoData(now);
+  await connectFixture(page);
+  await connectInventory(page, inventory);
+  await page.locator("#generate").click();
+  await expect(page.locator(".recipe-card")).toBeVisible();
+  await page.route("https://api.sallinggroup.com/**", (r) =>
+    r.fulfill({ json: inventory.slice(1) }),
+  );
+  await page.clock.fastForward(301000);
+  await page.locator("#refresh").click();
+  await expect(page.locator("#message")).toContainText(
+    "Din opskrift er stadig tilgængelig",
+  );
+  await expect(page.locator(".store-card")).toHaveCount(2);
+  await expect(page.locator(".recipe-card .cost-total")).toContainText("+ ?");
+  inventory[0].clearances[0].offer.newPrice = 6;
+  await page.route("https://api.sallinggroup.com/**", (r) =>
+    r.fulfill({ json: inventory }),
+  );
+  await page.clock.fastForward(301000);
+  await page.locator("#refresh").click();
+  await expect(page.locator(".recipe-card .cost-total")).toContainText("6,00");
+  await expect(page.locator(".store-card.active")).toHaveAttribute(
+    "data-store",
+    "demo-1",
+  );
+});
+
+test("a recipe finishing during a store refresh uses the latest observed price", async ({
+  page,
+}) => {
+  const now = Date.now();
+  await page.clock.install({ time: now });
+  const inventory = demoData(now);
+  let release;
+  await connectFixture(page, async (r, input) => {
+    await new Promise((resolve) => {
+      release = resolve;
+    });
+    await r.fulfill({ json: generated(input) });
+  });
+  await connectInventory(page, inventory);
+  await page.clock.fastForward(301000);
+  await page.locator("#generate").click();
+  await expect.poll(() => Boolean(release)).toBe(true);
+  inventory[0].clearances[0].offer.newPrice = 6;
+  await page.locator("#refresh").click();
+  await expect(
+    page.getByRole("button", {
+      name: "Fravælg Broccoli · 1 stk.",
+      exact: true,
+    }),
+  ).toContainText("6,00");
+  release();
+  await expect(page.locator(".recipe-card .cost-total")).toContainText("6,00");
 });
 
 test("a configuration failure keeps location controls disabled after changing language", async ({
@@ -564,6 +713,147 @@ const suggested = (input) => ({
   ],
 });
 const ideasUrl = "https://recipes.example.test/ideas";
+
+test("inspiration refresh disables only ideas that lost a referenced offer", async ({
+  page,
+}) => {
+  const now = Date.now();
+  await page.clock.install({ time: now });
+  const inventory = demoData(now);
+  await connectFixture(page);
+  await connectInventory(page, inventory);
+  await page.route(ideasUrl, (r) =>
+    r.fulfill({
+      json: {
+        status: "ok",
+        ideas: [
+          {
+            title: "Ret med broccoli",
+            description: "En ret med broccoli.",
+            minutes: 20,
+            productIds: ["p1"],
+            extraIngredients: [],
+          },
+          {
+            title: "En anden ret",
+            description: "En ret med den næste vare.",
+            minutes: 15,
+            productIds: ["p2"],
+            extraIngredients: [],
+          },
+        ],
+      },
+    }),
+  );
+  await page.locator('[value="inspire"]').check();
+  await page.locator("#generate").click();
+  await expect(page.locator(".idea-card")).toHaveCount(2);
+  inventory[0].clearances[0].offer.stock = 0;
+  await page.clock.fastForward(301000);
+  await page.locator("#refresh").click();
+  await expect(page.locator('[data-idea="0"]')).toBeDisabled();
+  await expect(page.locator(".idea-card").first()).toContainText(
+    "ikke længere tilgængelig",
+  );
+  await expect(page.locator('[data-idea="1"]')).toBeEnabled();
+});
+
+test("replacing suggestions keeps the cards and recipe, respects the shared retry deadline and spends no extra calls", async ({
+  page,
+}) => {
+  await page.clock.install({ time: Date.now() });
+  let ideaCalls = 0,
+    recipeCalls = 0,
+    release;
+  await connectFixture(page, (r, input) => {
+    recipeCalls++;
+    return r.fulfill({
+      json: { ...generated(input), title: input.idea.title },
+    });
+  });
+  await page.route(ideasUrl, async (r) => {
+    ideaCalls++;
+    if (ideaCalls === 2) {
+      await new Promise((resolve) => {
+        release = resolve;
+      });
+      return r.fulfill({
+        status: 429,
+        headers: {
+          "Retry-After": "10",
+          "Access-Control-Expose-Headers": "Retry-After",
+        },
+        json: { error: "Modellen er optaget. Prøv igen om et minut." },
+      });
+    }
+    return r.fulfill({ json: suggested(r.request().postDataJSON()) });
+  });
+  await page.goto("/");
+  await page.locator('[value="inspire"]').check();
+  await page.locator("#generate").click();
+  await page.locator('[data-idea="0"]').click();
+  await expect(page.locator("#recipe-dialog")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.locator("#generate").click();
+  await expect.poll(() => Boolean(release)).toBe(true);
+  await expect(page.locator(".idea-card")).toHaveCount(3);
+  await expect(page.locator(".recipe-card")).toHaveCount(1);
+  release();
+  await expect(page.locator("#generation-status")).toContainText(
+    "Du kan prøve igen",
+  );
+  await expect(page.locator("#generate")).toBeDisabled();
+  await expect(page.locator("[data-idea]").first()).toBeDisabled();
+  await expect(page.locator(".idea-card")).toHaveCount(3);
+  await page.locator("[data-recipe]").click();
+  await expect(page.locator("#recipe-dialog")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.clock.fastForward(11000);
+  await expect(page.locator("#generate")).toBeEnabled();
+  await expect(page.locator("[data-idea]").first()).toBeEnabled();
+  expect([ideaCalls, recipeCalls]).toEqual([2, 1]);
+  await page.locator("#generate").click();
+  await expect.poll(() => ideaCalls).toBe(3);
+});
+
+test("a failed alternative keeps the manual recipe and the cooldown follows a switch to suggestions", async ({
+  page,
+}) => {
+  await page.clock.install({ time: Date.now() });
+  let calls = 0;
+  await connectFixture(page, (r, input) =>
+    ++calls === 1
+      ? r.fulfill({ json: generated(input) })
+      : r.fulfill({
+          status: 429,
+          headers: {
+            "Retry-After": "90",
+            "Access-Control-Expose-Headers": "Retry-After",
+          },
+          json: { error: "Prøv igen senere." },
+        }),
+  );
+  await page.goto("/");
+  await selectBroccoli(page);
+  await page.locator("#generate").click();
+  await page.locator("#another-recipe").click();
+  await expect(page.locator("#generation-status")).toContainText(
+    "Du kan prøve igen",
+  );
+  await expect(page.locator(".recipe-card")).toHaveCount(1);
+  await expect(page.locator("#another-recipe")).toBeDisabled();
+  await page.locator('[value="inspire"]').check();
+  await expect(page.locator("#generate")).toBeDisabled();
+  await page.locator("#language").selectOption("en");
+  await expect(page.locator("#generation-status")).toContainText(
+    "You can try again",
+  );
+  await page.clock.fastForward(89000);
+  await expect(page.locator("#generate")).toBeDisabled();
+  await page.clock.fastForward(2000);
+  await expect(page.locator("#generate")).toBeEnabled();
+  expect(calls).toBe(2);
+});
 
 test("AI chooses products from the store; choosing a suggestion requests its full recipe and preserves manual choices", async ({
   page,

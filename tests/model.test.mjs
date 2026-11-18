@@ -98,3 +98,39 @@ test("formats timestamps in Denmark for both numeric and ISO inputs", () => {
   assert.equal(formatTime(now), formatTime("2026-11-01T12:00:00Z"));
   assert.equal(formatTime(null), "ukendt");
 });
+
+test("a clearance keeps its identity across reordering and repricing, including distinct concurrent lots", () => {
+  const raw = demoData(now);
+  const first = raw[0].clearances[0];
+  first.product.categories = {
+    en: "Fruit And Vegetables>Vegetables",
+    da: "Grønt",
+  };
+  const offers = () =>
+    normalizeStores(raw, DEMO_ORIGIN, 3, now).find((s) => s.id === "demo-1")
+      .offers;
+  const original = offers()[0];
+  raw[0].clearances.reverse();
+  first.offer.newPrice--;
+  assert.equal(
+    offers().find((o) => o.id === original.id).price,
+    first.offer.newPrice,
+  );
+  assert.equal(original.category, first.product.categories.en);
+  delete first.product.categories.en;
+  assert.equal(offers().find((o) => o.id === original.id).category, "Grønt");
+  const twin = {
+    ...first,
+    offer: { ...first.offer, newPrice: first.offer.newPrice - 1 },
+  };
+  raw[0].clearances.push(twin);
+  const ids = () =>
+    offers()
+      .filter((o) => o.name === original.name)
+      .map((o) => o.id)
+      .sort();
+  const two = ids();
+  assert.equal(new Set(two).size, 2);
+  raw[0].clearances.reverse();
+  assert.deepEqual(ids(), two);
+});

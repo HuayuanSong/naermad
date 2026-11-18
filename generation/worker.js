@@ -95,6 +95,9 @@ async function generate(input, env, fetcher, kind) {
           ? "Opskriftsmodellens kredit er brugt op. Prøv igen senere."
           : "Opskriftsmodellen er midlertidigt utilgængelig.",
         response.status === 429 ? 429 : 503,
+        response.status === 429
+          ? response.headers.get("Retry-After") || 60
+          : null,
       );
     const data = await response.json();
     output = data.choices?.[0]?.message?.content;
@@ -187,8 +190,10 @@ export default {
       Vary: "Origin",
       "X-Content-Type-Options": "nosniff",
     };
-    if (origin && allowed.includes(origin))
+    if (origin && allowed.includes(origin)) {
       headers["Access-Control-Allow-Origin"] = origin;
+      headers["Access-Control-Expose-Headers"] = "Retry-After";
+    }
     const json = (data, status = 200) =>
       Response.json(
         data.error

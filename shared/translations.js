@@ -1,6 +1,21 @@
 // Danish is the default and the source key. Values are trusted application copy;
 // store names, product labels and model output never pass through a DOM translator.
 export const english = {
+  "Opskriften indeholdt kød eller fisk. Prøv en ny vegetarisk opskrift.":
+    "The recipe included meat or fish. Try generating another vegetarian recipe.",
+  "Du kan prøve igen {time}.": "You can try again at {time}.",
+  "Lageret kunne ikke opdateres. Viser oplysninger hentet {time}.":
+    "Stock could not be refreshed. Showing the inventory retrieved at {time}.",
+  "Den valgte butik er ikke med i det seneste svar. Din opskrift er stadig tilgængelig.":
+    "The selected store is missing from the latest inventory. You can still use your recipe.",
+  "Tilbuddet er ikke længere tilgængeligt.":
+    "This offer is no longer available.",
+  "Tilbud ikke længere tilgængeligt: {names}":
+    "Offer no longer available: {names}",
+  "Tilbud ikke tilgængeligt": "Offer unavailable",
+  "Varen er ikke med i delsummen.": "This item is excluded from the subtotal.",
+  "En vare i forslaget er ikke længere tilgængelig.":
+    "An item in this idea is no longer available.",
   "Opskriften mangler tydelige mængder eller enheder. Prøv at lave en ny opskrift.":
     "The recipe is missing clear quantities or units. Please generate a new recipe.",
   "Nedsatte varer i alt": "Discounted products total",
@@ -120,11 +135,11 @@ export const english = {
   "Sallings Anti Food Waste API viser varer sat ned på grund af kort holdbarhed i deltagende Netto, føtex og Bilka. Det er ikke de almindelige tilbudsaviser. Lagerstatus er vejledende, og varer kan være solgt, når du kommer frem.":
     "Salling’s Anti Food Waste API lists short-dated markdowns at participating Netto, føtex and Bilka stores. These are not the regular weekly promotions. Stock is indicative and products may sell out before you arrive.",
   "Opskrifter og ingredienser": "Recipes and ingredients",
-  "Tryk på “Lav en opskrift” for at sende de valgte varenavne, portionsantal, tidsramme og basisvarer til en sprogmodel. Vi kontrollerer svarformatet og at alle valgte varer er refereret. Det kontrollerer ikke smag eller tilberedningens korrekthed. AI-opskrifter er ikke køkkentestede. Tjek produktets ingredienser, allergener og holdbarhed på emballagen.":
-    "Press “Create a recipe” to send product names, servings, preparation time and pantry items to a language model. We check the response format and that all chosen products are referenced. This does not verify taste or cooking accuracy. AI recipes are not kitchen-tested. Check ingredients, allergens and use-by dates on the packaging.",
+  "Tryk på “Lav en opskrift” for at sende de valgte varenavne og eventuelle varekategorier, portionsantal, tidsramme og basisvarer til en sprogmodel. Vi kontrollerer svarformatet og at alle valgte varer er refereret. Det kontrollerer ikke smag eller tilberedningens korrekthed. AI-opskrifter er ikke køkkentestede. Tjek produktets ingredienser, allergener og holdbarhed på emballagen.":
+    "Press “Create a recipe” to send product names, available product categories, servings, preparation time and pantry items to a language model. We check the response format and that all chosen products are referenced. This does not verify taste or cooking accuracy. AI recipes are not kitchen-tested. Check ingredients, allergens and use-by dates on the packaging.",
   "Data og privatliv": "Data and privacy",
-  "En adressesøgning sendes til Photons offentlige søgetjeneste. I live-tilstand sendes den valgte position til Salling. Kortvisninger hentes fra OpenStreetMap. Ved AI-forslag sendes op til 60 forskellige varenavne fra butikken; ved opskriftsgenerering sendes kun varerne til den valgte ret og dine madvalg til modeltjenesten, ikke din adresse eller position. Appen har ingen analyseværktøjer og gemmer ikke din adresse på en server; søgninger caches kun i hukommelsen, mens siden er åben.":
-    "Address searches go to Photon’s public search service. In live mode, the chosen coordinates go to Salling. Maps come from OpenStreetMap. AI suggestions use up to 60 store product names; recipe generation uses only the chosen dish’s products and your food preferences, not your address or location. The app has no analytics and stores no address on a server; searches are cached in memory while the page is open.",
+  "En adressesøgning sendes til Photons offentlige søgetjeneste. I live-tilstand sendes den valgte position til Salling. Kortvisninger hentes fra OpenStreetMap. Ved AI-forslag sendes op til 60 forskellige varenavne og deres eventuelle varekategorier fra butikken; ved opskriftsgenerering sendes kun varerne til den valgte ret og dine madvalg til modeltjenesten, ikke din adresse eller position. Appen har ingen analyseværktøjer og gemmer ikke din adresse på en server; søgninger caches kun i hukommelsen, mens siden er åben.":
+    "Address searches go to Photon’s public search service. In live mode, the chosen coordinates go to Salling. Maps come from OpenStreetMap. AI suggestions use up to 60 store product names and their available categories; recipe generation uses only the chosen dish’s products and your food preferences, not your address or location. The app has no analytics and stores no address on a server; searches are cached in memory while the page is open.",
   "Geokodning og kort er fælles tjenester uden garanteret oppetid. Salling dokumenterer aktuelt 100 madspildsforespørgsler pr. dag. Vi cacher søgninger i fem minutter og opdaterer kun ved dit valg.":
     "Geocoding and maps are shared services without guaranteed availability. Salling currently documents 100 food-waste requests per day. Searches are cached for five minutes and refreshed only at your request.",
   "Sallings API ↗": "Salling’s API ↗",

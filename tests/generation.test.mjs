@@ -94,6 +94,30 @@ test("request validation bounds inputs and excludes location, prices and credent
     ["ris"],
   );
 });
+
+test("the client preserves server retry deadlines even for a non-JSON rate limit", async (t) => {
+  let retry = "90";
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async () =>
+      new Response("Busy", {
+        status: 429,
+        headers: retry === null ? {} : { "Retry-After": retry },
+      }),
+  );
+  for (const [header, milliseconds] of [
+    ["90", 90000],
+    ["0", 0],
+    [null, 60000],
+  ]) {
+    retry = header;
+    await assert.rejects(
+      requestRecipe("https://example.test/recipe", input()),
+      { status: 429, retryAfter: milliseconds },
+    );
+  }
+});
 test("browser sends selected non-expired product names and explicit pantry only", () => {
   const offers = [
     {
@@ -248,6 +272,7 @@ test("worker enforces request validation, CORS, bounded body and burst limiter b
   });
   assert.equal(res.status, 429);
   assert.equal(res.headers.get("Retry-After"), "60");
+  assert.equal(res.headers.get("Access-Control-Expose-Headers"), "Retry-After");
   assert.equal(calls, 1);
   res = await worker.fetch(
     req(input(), { method: "OPTIONS", body: undefined }),

@@ -47,8 +47,9 @@ flowchart TB
     worker -->|"Validated JSON"| app
 ```
 
-Generation happens on request: one model call for a manual recipe, or one for ideas
-followed by another for the chosen recipe. Prices are calculated in the browser.
+Generation takes one model call for a manual recipe, or one call for ideas followed
+by another for the chosen recipe. The model receives shelf labels and available
+Salling product categories. The browser calculates the prices.
 Addresses, coordinates, store names, prices and the Salling key are excluded from
 the model request.
 

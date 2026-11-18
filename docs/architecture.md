@@ -33,8 +33,9 @@ the Cloudflare Worker, which invokes a model hosted by Cloudflare Workers AI.
    The browser filters invalid, expired and sold-out offers and unsupported brands.
    Leaflet displays the locations over OpenStreetMap tiles.
 3. **Choose how to generate.** Manual mode sends 1–6 selected products to `POST /recipe`.
-   Inspiration sends up to 60 unique, unexpired product names to `POST /ideas`,
-   returning up to three dish outlines. Choosing an outline makes a separate
+   Both routes send available retailer categories alongside the shelf labels.
+   Inspiration sends up to 60 unique, unexpired products to `POST /ideas`
+   and returns up to three dish outlines. Choosing an outline makes a separate
    `POST /recipe` request with its products, title, description and expected extras.
    Larger inventories rotate through another bounded selection when requesting
    new ideas; this is not an exhaustive inventory search.
@@ -42,16 +43,21 @@ the Cloudflare Worker, which invokes a model hosted by Cloudflare Workers AI.
    constructs the prompt/schema and calls `env.AI.run()` once. Thinking is explicitly
    disabled. It validates the model response and normalizes quantities into Danish
    or English display strings. The browser validates the response again. Current
-   prompt versions are `naermad-generated-v6` and `naermad-ideas-v2`.
+   prompt versions are `naermad-generated-v7` and `naermad-ideas-v3`.
 5. **Calculate and display.** The browser joins ingredient references to the fetched
    offer snapshot and computes purchase costs locally. The recipe, cost breakdown
    and shopping list can be copied, downloaded or printed.
 
-The model can decline unsuitable inputs. Invalid output, provider failures and
-exhausted quotas produce explicit messages; there are no automatic retries or
-catalogue recipes. Store, product, preference and language changes invalidate old
-results and cancel pending browser requests. Cancellation cannot guarantee that
-upstream inference has stopped consuming allowance.
+Refreshing the same store retains recipes and edited quantities. When a discount
+disappears, its ingredient is flagged and the current subtotal excludes it.
+A failed refresh shows the previous inventory with its retrieval time.
+
+Both AI routes share the retry deadline supplied by the Worker. A failed replacement
+leaves the previous results visible. Choosing a different store, product, preference
+or language invalidates old results and cancels the pending browser request.
+Upstream inference can still consume allowance after a browser cancellation.
+The model can decline unsuitable inputs. The app displays provider and validation
+errors and waits for the user to initiate another generation.
 
 The unused Hugging Face adapter is a manually configured alternative, not a fallback
 or part of the deployed path. No fine-tuning dataset, training job, vector database

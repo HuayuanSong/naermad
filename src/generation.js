@@ -5,7 +5,13 @@ import {
   validateRequest,
   validateIdeasRequest,
 } from "../generation/contract.js";
+import { ApiError, parseRetryAfter } from "./api.js";
 export { MAX_PRODUCTS };
+const modelProduct = (offer, i) => ({
+  id: `p${i + 1}`,
+  name: offer.name,
+  ...(offer.category && { category: offer.category }),
+});
 export function generationInput(offers, selected, settings) {
   const products = offers.filter(
     (o) => selected.has(o.id) && Date.parse(o.endsAt) > Date.now(),
@@ -22,7 +28,7 @@ export function generationInput(offers, selected, settings) {
     if (entry.trim()) pantry.push(entry.trim());
   return validateRequest({
     language,
-    products: products.map((p, i) => ({ id: `p${i + 1}`, name: p.name })),
+    products: products.map(modelProduct),
     pantry: [...new Set(pantry)],
     servings: settings.servings,
     maxMinutes: settings.maxMinutes,
@@ -75,10 +81,7 @@ export function ideasInput(offers, settings) {
   return {
     input: validateIdeasRequest({
       ...preferences,
-      products: candidates.offers.map((o, i) => ({
-        id: `p${i + 1}`,
-        name: o.name,
-      })),
+      products: candidates.offers.map(modelProduct),
     }),
     offers: candidates.offers,
     total: candidates.total,
@@ -149,13 +152,20 @@ export async function requestRecipe(endpoint, input, signal) {
   try {
     data = await response.json();
   } catch {
-    throw new Error("Opskriftsmodellen returnerede et ukendt svar.");
+    if (response.ok)
+      throw new Error("Opskriftsmodellen returnerede et ukendt svar.");
   }
-  if (!response.ok)
-    throw new Error(
+  if (!response.ok) {
+    const retryAfter = response.headers.get("Retry-After");
+    throw new ApiError(
       typeof data?.error === "string" && data.error.trim()
         ? data.error
         : "Opskriften kunne ikke laves. Prøv igen senere.",
+      response.status,
+      response.status === 429 && retryAfter === null
+        ? 60000
+        : parseRetryAfter(retryAfter),
     );
+  }
   return data;
 }
