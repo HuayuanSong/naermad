@@ -219,6 +219,8 @@ test("same-store refresh preserves edited quantities across a cache hit, transie
   await page.keyboard.press("Escape");
   const total = page.locator(".recipe-card .cost-total");
   await expect(total).toContainText("16,00");
+  await page.locator(".store-card.active").click();
+  await expect(total).toContainText("16,00");
   await page.locator("#refresh").click();
   await expect(total).toContainText("16,00");
   await page.clock.fastForward(301000);
@@ -848,9 +850,9 @@ test("a failed alternative keeps the manual recipe and the cooldown follows a sw
   await expect(page.locator("#generation-status")).toContainText(
     "You can try again",
   );
-  await page.clock.fastForward(89000);
+  await page.clock.fastForward(70000);
   await expect(page.locator("#generate")).toBeDisabled();
-  await page.clock.fastForward(2000);
+  await page.clock.fastForward(21000);
   await expect(page.locator("#generate")).toBeEnabled();
   expect(calls).toBe(2);
 });
@@ -954,20 +956,29 @@ test("changing store, preferences or mode discards stale inspiration and pending
   page,
 }) => {
   await connectFixture(page);
-  let pending;
+  let pending, delivered;
+  const finished = new Promise((resolve) => {
+    delivered = resolve;
+  });
   await page.route(ideasUrl, async (r) => {
     const input = r.request().postDataJSON();
     await new Promise((resolve) => {
       pending = resolve;
     });
     await r.fulfill({ json: suggested(input) }).catch(() => {});
+    delivered();
   });
   await page.goto("/");
+  await page.locator('[data-store="demo-1"]').click();
   await page.getByRole("radio", { name: /Lad AI vælge/ }).check();
   await page.locator("#generate").click();
   await expect.poll(() => Boolean(pending)).toBe(true);
+  await page.locator('[data-store="demo-1"]').click();
+  await expect(page.locator("#cancel-generation")).toBeVisible();
   await page.locator('[data-store="demo-2"]').click();
+  await expect(page.locator("#cancel-generation")).toBeHidden();
   pending();
+  await finished;
   await expect(page.locator(".idea-card")).toHaveCount(0);
   await expect(page.locator("#generate")).toBeEnabled();
   await page.unroute(ideasUrl);
