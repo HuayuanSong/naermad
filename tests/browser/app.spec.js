@@ -110,6 +110,37 @@ async function connectInventory(page, inventory) {
   await selectBroccoli(page);
 }
 
+test("vegetarian inspiration explains an all-meat inventory and lets the user change the preference", async ({
+  page,
+}) => {
+  const inventory = demoData();
+  const shelf = inventory[2].clearances[0];
+  inventory[2].clearances = [
+    {
+      ...shelf,
+      product: {
+        description: "ASIATISKE MINIDELLER DET SØNDERJYSKE KØK.",
+        categories: { en: "Dairy And Cold Storage>Lunch Meats>Meat Balls" },
+      },
+    },
+  ];
+  await connectInventory(page, inventory);
+  await page.locator('[data-store="demo-3"]').click();
+  await page.locator('[value="inspire"]').check();
+  await expect(page.locator("#generate")).toBeEnabled();
+  await page.locator("#vegetarian").check();
+  await expect(page.locator("#generate")).toBeDisabled();
+  await expect(page.locator("#selected-products")).toContainText(
+    "Ingen egnede varer til vegetariske forslag.",
+  );
+  await page.locator("#language").selectOption("en");
+  await expect(page.locator("#selected-products")).toContainText(
+    "No suitable products are available for vegetarian suggestions.",
+  );
+  await page.locator("#vegetarian").uncheck();
+  await expect(page.locator("#generate")).toBeEnabled();
+});
+
 test("refresh preserves the selected store and the existing inventory cache policy", async ({
   page,
 }) => {

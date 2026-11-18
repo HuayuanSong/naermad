@@ -14,6 +14,7 @@ import {
 import { translateError } from "../shared/translations.js";
 
 import { ideasSchema, buildIdeasMessages, validateIdeas } from "./ideas.js";
+import { NO_VEGETARIAN_OFFERS, vegetarianConflict } from "./ingredients.js";
 
 async function readJson(request, maxBody = 12000) {
   if (!request.headers.get("Content-Type")?.startsWith("application/json"))
@@ -53,8 +54,27 @@ async function readJson(request, maxBody = 12000) {
 
 export const generateRecipe = (input, env, fetcher = fetch) =>
   generate(input, env, fetcher, "recipe");
-export const generateIdeas = (input, env, fetcher = fetch) =>
-  generate(input, env, fetcher, "ideas");
+export async function generateIdeas(input, env, fetcher = fetch) {
+  if (input.vegetarian) {
+    const products = input.products.filter(
+      (product) => !vegetarianConflict(product),
+    );
+    if (!products.length)
+      return {
+        status: "cannot_create",
+        reason: translateError(NO_VEGETARIAN_OFFERS, input.language),
+        ideas: [],
+        language: input.language || "da",
+        promptVersion: IDEAS_PROMPT_VERSION,
+        generatedAt: new Date().toISOString(),
+        provider: null,
+        model: null,
+        usage: null,
+      };
+    return generate({ ...input, products }, env, fetcher, "ideas");
+  }
+  return generate(input, env, fetcher, "ideas");
+}
 
 async function generate(input, env, fetcher, kind) {
   const provider = env.RECIPE_PROVIDER || "cloudflare";

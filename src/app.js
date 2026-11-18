@@ -39,6 +39,7 @@ import {
   generationInput,
   requestRecipe,
   ideaCandidates,
+  emptyIdeasMessage,
   ideasInput,
   recipeFromIdea,
   ideasEndpoint,
@@ -352,7 +353,7 @@ function renderRecipes() {
   const inspire = state.mode === "inspire";
   const offers = selectedOffers();
   const candidates = inspire
-    ? ideaCandidates(state.store?.offers || [], state.variant)
+    ? ideaCandidates(state.store?.offers || [], state.variant, state.vegetarian)
     : null;
   $("#offers").hidden = inspire;
   $("#recipes").classList.toggle("inspiration-mode", inspire);
@@ -365,7 +366,7 @@ function renderRecipes() {
       )
     : t("En ny opskrift lavet med netop de varer, du vælger.");
   $("#selected-products").innerHTML = inspire
-    ? `<div class="inspiration-source"><span class="selection-caption">${state.store ? escapeHtml(state.store.name) : t("FIND EN BUTIK FØRST")}</span><p>${!state.store ? t("Vælg en butik for at få forslag fra dens datovarer.") : candidates.offers.length ? `${t("Forslagene tager udgangspunkt i")} ${candidates.offers.length}${candidates.total > candidates.offers.length ? ` ${t("af")} ${candidates.total}` : ""} ${t("forskellige datovarer.")} ${candidates.total > candidates.offers.length ? t("Nye forslag tager et andet udvalg med.") : t("Du behøver ikke vælge ingredienser først.")}` : t("Ingen varer med tydelige navne at foreslå retter fra. Prøv en anden butik.")}</p></div>`
+    ? `<div class="inspiration-source"><span class="selection-caption">${state.store ? escapeHtml(state.store.name) : t("FIND EN BUTIK FØRST")}</span><p>${!state.store ? t("Vælg en butik for at få forslag fra dens datovarer.") : candidates.offers.length ? `${t("Forslagene tager udgangspunkt i")} ${candidates.offers.length}${candidates.total > candidates.offers.length ? ` ${t("af")} ${candidates.total}` : ""} ${t("forskellige datovarer.")} ${candidates.total > candidates.offers.length ? t("Nye forslag tager et andet udvalg med.") : t("Du behøver ikke vælge ingredienser først.")}` : t(emptyIdeasMessage(state.vegetarian))}</p></div>`
     : offers.length
       ? `<span class="selection-caption">${t("OPSKRIFTEN SKAL BRUGE")}</span><div class="product-chips">${offers.map((o) => `<span>${escapeHtml(o.name)}</span>`).join("")}</div>`
       : `<p class="muted">${t("Vælg varer ovenfor. Der laves først en opskrift, når du trykker på knappen.")}</p>`;

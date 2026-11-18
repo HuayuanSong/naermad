@@ -35,15 +35,18 @@ the Cloudflare Worker, which invokes a model hosted by Cloudflare Workers AI.
 3. **Choose how to generate.** Manual mode sends 1–6 selected products to `POST /recipe`.
    Both routes send available retailer categories alongside the shelf labels.
    Inspiration sends up to 60 unique, unexpired products to `POST /ideas`
-   and returns up to three dish outlines. Choosing an outline makes a separate
+   and returns up to three dish outlines. For vegetarian suggestions, the browser
+   filters clear meat and fish matches before sampling. The Worker repeats that
+   check before sending the catalog to the model. Choosing an outline makes a separate
    `POST /recipe` request with its products, title, description and expected extras.
    Larger inventories rotate through another bounded selection when requesting
    new ideas; this is not an exhaustive inventory search.
 4. **Generate and validate.** The Worker validates input, applies its rate limiter,
-   constructs the prompt/schema and calls `env.AI.run()` once. Thinking is explicitly
+   constructs the prompt/schema and calls `env.AI.run()` once when there are
+   eligible products. Thinking is explicitly
    disabled. It validates the model response and normalizes quantities into Danish
    or English display strings. The browser validates the response again. Current
-   prompt versions are `naermad-generated-v7` and `naermad-ideas-v3`.
+   prompt versions are `naermad-generated-v7` and `naermad-ideas-v4`.
 5. **Calculate and display.** The browser joins ingredient references to the fetched
    offer snapshot and computes purchase costs locally. The recipe, cost breakdown
    and shopping list can be copied, downloaded or printed.
@@ -120,7 +123,7 @@ See [setup](setup.md) for configuration and deployment commands.
 | Photon                           | Explicitly submitted place/address search text                                                                                                   |
 | Salling                          | Selected coordinates, search radius and public frontend credential                                                                               |
 | OpenStreetMap tile service       | Requested map tile coordinates                                                                                                                   |
-| Generation Worker and Workers AI | Product names with temporary IDs, pantry items, portions, time, vegetarian preference, language and variant; chosen idea details when applicable |
+| Generation Worker and Workers AI | Product names, optional retailer categories, temporary IDs, pantry items, portions, time, vegetarian preference, language, variant and any chosen idea details |
 
 The generation payload excludes address, coordinates, store name, prices and the
 Salling key. Providers still receive network metadata. The Worker uses the client

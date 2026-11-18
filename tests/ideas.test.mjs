@@ -60,6 +60,7 @@ test("store candidates skip expired, duplicate and opaque labels, rotate bounded
   ];
   const context = ideasInput(inventory, {
     ...settings,
+    vegetarian: false,
     address: "private",
     key: "private",
   });
@@ -81,7 +82,11 @@ test("store candidates skip expired, duplicate and opaque labels, rotate bounded
   assert.equal(ideaCandidates(many, 1).offers[0].id, "60");
   assert.equal(ideaCandidates(many).total, 75);
   assert.throws(
-    () => ideasInput([offer("a", "SF BP M. 250G")], settings),
+    () =>
+      ideasInput([offer("a", "SF BP M. 250G")], {
+        ...settings,
+        vegetarian: false,
+      }),
     /tydelige navne/,
   );
 });

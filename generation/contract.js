@@ -11,7 +11,7 @@ import {
 export const MAX_PRODUCTS = 6;
 export const MAX_IDEA_PRODUCTS = 60;
 export const PROMPT_VERSION = "naermad-generated-v7";
-export const IDEAS_PROMPT_VERSION = "naermad-ideas-v3";
+export const IDEAS_PROMPT_VERSION = "naermad-ideas-v4";
 export const DEFAULT_CF_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 export const DEFAULT_HF_MODEL = "Qwen/Qwen3-30B-A3B:deepinfra";
 

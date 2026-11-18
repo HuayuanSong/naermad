@@ -1,6 +1,8 @@
 // Danish is the default and the source key. Values are trusted application copy;
 // store names, product labels and model output never pass through a DOM translator.
 export const english = {
+  "Ingen egnede varer til vegetariske forslag. Prøv en anden butik.":
+    "No suitable products are available for vegetarian suggestions. Try another store.",
   "Opskriften indeholdt kød eller fisk. Prøv en ny vegetarisk opskrift.":
     "The recipe included meat or fish. Try generating another vegetarian recipe.",
   "Du kan prøve igen {time}.": "You can try again at {time}.",

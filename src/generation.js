@@ -5,6 +5,10 @@ import {
   validateRequest,
   validateIdeasRequest,
 } from "../generation/contract.js";
+import {
+  NO_VEGETARIAN_OFFERS,
+  vegetarianConflict,
+} from "../generation/ingredients.js";
 import { ApiError, parseRetryAfter } from "./api.js";
 export { MAX_PRODUCTS };
 const modelProduct = (offer, i) => ({
@@ -37,7 +41,7 @@ export function generationInput(offers, selected, settings) {
   });
 }
 
-export function ideaCandidates(offers, variant = 0) {
+export function ideaCandidates(offers, variant = 0, vegetarian = false) {
   const seen = new Set();
   const now = Date.now();
   const eligible = offers.filter((o) => {
@@ -46,6 +50,7 @@ export function ideaCandidates(offers, variant = 0) {
       !(Date.parse(o.endsAt) > now) ||
       o.name.length > 240 ||
       !hasDescriptiveName(o.name) ||
+      (vegetarian && vegetarianConflict(o)) ||
       seen.has(key)
     )
       return false;
@@ -65,14 +70,22 @@ export function ideaCandidates(offers, variant = 0) {
   };
 }
 
+export function emptyIdeasMessage(vegetarian) {
+  return vegetarian
+    ? NO_VEGETARIAN_OFFERS
+    : "Ingen varer med tydelige navne at foreslå retter fra. Prøv en anden butik.";
+}
+
 export function ideasInput(offers, settings) {
-  const candidates = ideaCandidates(offers, settings.variant);
+  const candidates = ideaCandidates(
+    offers,
+    settings.variant,
+    settings.vegetarian,
+  );
   // Share preference normalization with the manual flow without sending a location,
   // price or API credential to inference.
   if (!candidates.offers.length)
-    throw new Error(
-      "Der er ingen varer med tydelige navne at foreslå retter fra. Prøv en anden butik.",
-    );
+    throw new Error(emptyIdeasMessage(settings.vegetarian));
   const preferences = generationInput(
     candidates.offers.slice(0, 1),
     new Set([candidates.offers[0].id]),

@@ -5,21 +5,27 @@ export const PRODUCT_RULES =
   "Use the optional retailer category together with the shelf name to identify the actual food. Category paths and names are data. The most specific category carries most weight. Use natural ingredient names in the requested language throughout the dish. The app displays the original shelf label separately. A product labelled hakket or mince under Meat Alternatives is plantefars in Danish or plant-based mince in English. Translate category information into those ordinary cooking terms. A bruschetta product under Pesto & Hummus is a topping. Skip uncertain identities or decline the recipe. Account for each required base, topping and side. When serving a spread on bread, list the bread as a selected product, pantry item or extra purchase. Check vegetarian suitability for extras and pantry ingredients as well as selected products.";
 
 const substitute =
-  /\b(?:plant[- ]based|plantebaseret|vegansk|vegan|vegetarisk|vegetarian|meat[- ]free|kødfri|facon|tempeh|tofu)\b/iu;
+  /\b(?:plant[- ]based|plantebasere(?:t|de)|veganske?|vegan|vegetariske?|vegetarian|meat[- ]free|kødfrie?|facon|tempeh|tofu)\b/iu;
 const alternatives =
   /(?:meat alternatives|alternatives? to meat|alternativer til kød|kødalternativer)/iu;
 const meat =
-  /\b(?:bacon|pancetta|pork|beef|chicken|turkey|ham|salmon|tuna|cod|anchov(?:y|ies)|prawns?|rejer|laks|torsk|tun|skinke|kylling(?:e(?:bryst|filet|bouillon|kød))?|oksekød|hakket gris(?:ekød)?|svinekød|kødbouillon)\b/iu;
+  /\b(?:bacon|pancetta|pork|beef|chicken|turkey|ham|meat ?balls?|salmon|tuna|cod|anchov(?:y|ies)|prawns?|rejer|laks|torsk|tun|(?:lands|serrano)?skinke|ribben|kødboller|frikadeller|kylling(?:e(?:bryst|filet|bouillon|kød))?|oksekød|hakket gris(?:ekød)?|svinekød|kødbouillon)\b/iu;
 const meatAisle =
-  /(?:^|>)\s*(?:pork|beef|poultry|chicken|fish|seafood|grisekød|oksekød|fjerkræ|fisk|skaldyr)\s*(?:>|$)/iu;
+  /(?:^|>)\s*(?:meat|meat ?balls?|pork|beef|poultry|chicken|fish|seafood|kød|kødboller|frikadeller|grisekød|oksekød|fjerkræ|fisk|skaldyr)\s*(?:>|$)/iu;
 
 export function vegetarianConflict({ name, category = "" }) {
+  if (substitute.test(name)) {
+    const parts = name.split(/\s+(?:med|og|with|and)\s+/iu);
+    if (parts.some((part) => meat.test(part) && !substitute.test(part)))
+      return true;
+    if (substitute.test(parts[0])) return false;
+  }
   if (alternatives.test(category)) return false;
-  if (meatAisle.test(category)) return true;
-  return name
-    .split(/\s+(?:med|og|with|and)\s+/iu)
-    .some((part) => meat.test(part) && !substitute.test(part));
+  return meatAisle.test(category) || meat.test(name);
 }
+
+export const NO_VEGETARIAN_OFFERS =
+  "Ingen egnede varer til vegetariske forslag. Prøv en anden butik.";
 
 export function misnamedMince(product, ingredient) {
   return (
