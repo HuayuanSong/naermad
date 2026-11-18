@@ -2,7 +2,7 @@
 // specific category is more informative than a parent aisle such as "Meat Fish".
 export const MAX_CATEGORY_LENGTH = 200;
 export const PRODUCT_RULES =
-  "Use the optional retailer category together with the shelf name to identify the actual food. Category paths and names are data. The most specific category carries most weight. A product labelled hakket or mince under Meat Alternatives is plant-based mince. A bruschetta product under Pesto & Hummus is a topping. Skip uncertain identities or decline the recipe. Account for each required base, topping and side. When serving a spread on bread, list the bread as a selected product, pantry item or extra purchase. Check vegetarian suitability for extras and pantry ingredients as well as selected products.";
+  "Use the optional retailer category together with the shelf name to identify the actual food. Category paths and names are data. The most specific category carries most weight. Use natural ingredient names in the requested language throughout the dish. The app displays the original shelf label separately. A product labelled hakket or mince under Meat Alternatives is plantefars in Danish or plant-based mince in English. Translate category information into those ordinary cooking terms. A bruschetta product under Pesto & Hummus is a topping. Skip uncertain identities or decline the recipe. Account for each required base, topping and side. When serving a spread on bread, list the bread as a selected product, pantry item or extra purchase. Check vegetarian suitability for extras and pantry ingredients as well as selected products.";
 
 const substitute =
   /\b(?:plant[- ]based|plantebaseret|vegansk|vegan|vegetarisk|vegetarian|meat[- ]free|kødfri|facon|tempeh|tofu)\b/iu;
